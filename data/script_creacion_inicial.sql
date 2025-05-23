@@ -384,4 +384,5 @@ CREATE INDEX idx ON LOS_BASEADOS.tabla (idCliente);
 
 EXEC LOS_BASEADOS.migrar_estados
 
-EXEC LOS_BASEADOS.migrar_provincias
+--EXEC LOS_BASEADOS.migrar_provincias
+--EXEC LOS_BASEADOS.migrar_localidades
