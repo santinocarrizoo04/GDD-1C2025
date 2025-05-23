@@ -334,13 +334,42 @@ GO
 
 -- CREACION DE PROCEDURES DE MIGRACION
 
-/*
-CREATE PROC LOS_BASEADOS.migrar_tipo_medio_pago AS
+
+CREATE PROC LOS_BASEADOS.migrar_estados AS
 BEGIN
-    INSERT INTO LOS_BASEADOS.idCliente (Cliente_apellido)
-    SELECT DISTINCT Maestra.Cliente_Apellido 
+    INSERT INTO LOS_BASEADOS.estado (estado)
+    SELECT DISTINCT Maestra.Pedido_Estado 
     FROM Maestra 
-    WHERE Maestra.Cliente_Apellido IS NOT NULL;
+    WHERE Maestra.Pedido_Estado IS NOT NULL;
+END
+GO
+
+/* A ESTO LE FALTARIAN LAS PVCIAS DE SUCURSAL Y DE PROVEEDOR
+CREATE PROC LOS_BASEADOS.migrar_provincias AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.provincia (provincia)
+    SELECT DISTINCT Maestra.Cliente_Provincia 
+    FROM Maestra 
+    WHERE Maestra.Cliente_Provincia IS NOT NULL;
+END
+GO
+*/
+
+/* --ESTO ESTA MUUUUY VERDE, HAY QUE DESARROLLARLO BIEN ES LA ESTRUCTURA INICIAL
+CREATE PROC LOS_BASEADOS.migrar_localidad AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.localidad (localidad, idProvincia)
+    SELECT DISTINCT Maestra.Cliente_Localidad
+    FROM Maestra
+    WHERE Maestra.Cliente_Localidad IS NOT NULL
+    UNION
+    SELECT DISTINCT Maestra.Proveedor_Localidad
+    FROM Maestra
+    WHERE Maestra.Cliente_Localidad IS NOT NULL
+    UNION
+    SELECT DISTINCT Maestra.Sucursal_Localidad
+    FROM Maestra
+    WHERE Maestra.Cliente_Localidad IS NOT NULL
 END
 GO
 */
@@ -353,6 +382,6 @@ CREATE INDEX idx ON LOS_BASEADOS.tabla (idCliente);
 
 -- EJECUCION DE PROCEDURES
 
-/*
-EXEC LOS_PEORES.migrar_tipo_medio_pago;
-*/
+EXEC LOS_BASEADOS.migrar_estados
+
+EXEC LOS_BASEADOS.migrar_provincias
