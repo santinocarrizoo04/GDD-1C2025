@@ -344,35 +344,61 @@ BEGIN
 END
 GO
 
-/* A ESTO LE FALTARIAN LAS PVCIAS DE SUCURSAL Y DE PROVEEDOR
+
 CREATE PROC LOS_BASEADOS.migrar_provincias AS
 BEGIN
     INSERT INTO LOS_BASEADOS.provincia (provincia)
     SELECT DISTINCT Maestra.Cliente_Provincia 
     FROM Maestra 
-    WHERE Maestra.Cliente_Provincia IS NOT NULL;
+    WHERE Maestra.Cliente_Provincia IS NOT NULL
+    UNION
+    SELECT DISTINCT Maestra.Sucursal_provincia
+    FROM Maestra 
+    WHERE Maestra.Sucursal_provincia IS NOT NULL
+    UNION
+    SELECT DISTINCT Maestra.Proveedor_provincia 
+    FROM Maestra 
+    WHERE Maestra.Proveedor_provincia IS NOT NULL;
 END
 GO
-*/
 
-/* --ESTO ESTA MUUUUY VERDE, HAY QUE DESARROLLARLO BIEN ES LA ESTRUCTURA INICIAL
-CREATE PROC LOS_BASEADOS.migrar_localidad AS
+CREATE PROC LOS_BASEADOS.migrar_localidades AS
 BEGIN
     INSERT INTO LOS_BASEADOS.localidad (localidad, idProvincia)
-    SELECT DISTINCT Maestra.Cliente_Localidad
-    FROM Maestra
-    WHERE Maestra.Cliente_Localidad IS NOT NULL
+    SELECT DISTINCT m.Cliente_Localidad localidad, p.idProvincia
+    FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Cliente_Provincia = p.provincia
+    WHERE m.Cliente_Localidad IS NOT NULL
     UNION
-    SELECT DISTINCT Maestra.Proveedor_Localidad
-    FROM Maestra
-    WHERE Maestra.Cliente_Localidad IS NOT NULL
+    SELECT DISTINCT m.Proveedor_Localidad localidad, p.idProvincia
+    FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Proveedor_provincia = p.provincia
+    WHERE m.Proveedor_Localidad IS NOT NULL
     UNION
-    SELECT DISTINCT Maestra.Sucursal_Localidad
-    FROM Maestra
-    WHERE Maestra.Cliente_Localidad IS NOT NULL
+    SELECT DISTINCT m.Sucursal_Localidad localidad, p.idProvincia
+    FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Sucursal_provincia = p.provincia
+    WHERE m.Sucursal_Localidad IS NOT NULL
+    ORDER BY localidad ASC
 END
 GO
-*/
+
+CREATE PROC LOS_BASEADOS.migrar_sucursales AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.sucursal (numeroSucursal, idLocalidad, direccion, telefono, mail)
+    SELECT DISTINCT m.Sucursal_NroSucursal, l.idLocalidad, m.Sucursal_Direccion, m.Sucursal_telefono, m.Sucursal_mail
+    FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Sucursal_Provincia = p.provincia
+                    JOIN LOS_BASEADOS.localidad l ON m.Sucursal_Localidad = l.localidad AND l.idProvincia = p.idProvincia
+    WHERE m.Sucursal_NroSucursal IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_proveedores AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.proveedor (idLocalidad, razonSocial, direccion, telefono, mail, cuit)
+    SELECT DISTINCT l.idLocalidad, m.Proveedor_RazonSocial, m.Proveedor_Direccion, m.Proveedor_Telefono, m.Proveedor_Mail, m.Proveedor_Cuit
+    FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Proveedor_Provincia = p.provincia
+                    JOIN LOS_BASEADOS.localidad l ON m.Proveedor_Localidad = l.localidad AND l.idProvincia = p.idProvincia
+    WHERE m.Proveedor_Cuit IS NOT NULL
+END
+GO
 
 -- CREACION DE INDICES
 
@@ -384,5 +410,10 @@ CREATE INDEX idx ON LOS_BASEADOS.tabla (idCliente);
 
 EXEC LOS_BASEADOS.migrar_estados
 
---EXEC LOS_BASEADOS.migrar_provincias
---EXEC LOS_BASEADOS.migrar_localidades
+EXEC LOS_BASEADOS.migrar_provincias
+
+EXEC LOS_BASEADOS.migrar_localidades
+
+EXEC LOS_BASEADOS.migrar_sucursales
+
+EXEC LOS_BASEADOS.migrar_proveedores
