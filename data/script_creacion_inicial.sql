@@ -60,7 +60,7 @@ GO
 
 CREATE TABLE LOS_BASEADOS.tela(
     idTela INT NOT NULL IDENTITY(1,1),
-    idTipoMaterial INT NOT NULL,
+    idMaterial INT NOT NULL,
     color NVARCHAR(255) NOT NULL,
     textura NVARCHAR(255) NOT NULL
 );
@@ -68,7 +68,7 @@ GO
 
 CREATE TABLE LOS_BASEADOS.madera(
     idMadera INT NOT NULL IDENTITY(1,1),
-    idTipoMaterial INT NOT NULL,
+    idMaterial INT NOT NULL,
     color NVARCHAR(255) NOT NULL,
     dureza NVARCHAR(255) NOT NULL
 );
@@ -76,7 +76,7 @@ GO
 
 CREATE TABLE LOS_BASEADOS.relleno(
     idRelleno INT NOT NULL IDENTITY(1,1),
-    idTipoMaterial INT NOT NULL,
+    idMaterial INT NOT NULL,
     densidad NVARCHAR(255) NOT NULL
 );
 GO
@@ -84,7 +84,7 @@ GO
 CREATE TABLE LOS_BASEADOS.detalle_compra(
     idDetalleCompra BIGINT NOT NULL IDENTITY(1,1),
     numeroCompra DECIMAL(18,0) NOT NULL,
-    idTipoMaterial INT NOT NULL,
+    idMaterial INT NOT NULL,
     precioUnitario DECIMAL(18,2),
     cantidad DECIMAL(18,0),
     subtotal DECIMAL(18,2)
@@ -239,31 +239,31 @@ GO
 ALTER TABLE LOS_BASEADOS.tipo_material ADD CONSTRAINT PK_idTipoMaterial PRIMARY KEY(idTipoMaterial);
 GO
 
+ALTER TABLE LOS_BASEADOS.material ADD CONSTRAINT PK_idMaterial PRIMARY KEY(idMaterial);
+GO
+ALTER TABLE LOS_BASEADOS.material ADD CONSTRAINT FK_material_tipoMaterial FOREIGN KEY(idTipoMaterial) REFERENCES LOS_BASEADOS.tipo_material(idTipoMaterial);
+GO
+
 ALTER TABLE LOS_BASEADOS.tela ADD CONSTRAINT PK_idTela PRIMARY KEY(idTela);
 GO
-ALTER TABLE LOS_BASEADOS.tela ADD CONSTRAINT FK_tela_tipoMaterial FOREIGN KEY(idTipoMaterial) REFERENCES LOS_BASEADOS.tipo_material(idTipoMaterial);
+ALTER TABLE LOS_BASEADOS.tela ADD CONSTRAINT FK_tela_material FOREIGN KEY(idMaterial) REFERENCES LOS_BASEADOS.material(idMaterial);
 GO
 
 ALTER TABLE LOS_BASEADOS.madera ADD CONSTRAINT PK_idMadera PRIMARY KEY(idMadera);
 GO
-ALTER TABLE LOS_BASEADOS.madera ADD CONSTRAINT FK_madera_tipoMaterial FOREIGN KEY(idTipoMaterial) REFERENCES LOS_BASEADOS.tipo_material(idTipoMaterial);
+ALTER TABLE LOS_BASEADOS.madera ADD CONSTRAINT FK_madera_material FOREIGN KEY(idMaterial) REFERENCES LOS_BASEADOS.material(idMaterial);
 GO
 
 ALTER TABLE LOS_BASEADOS.relleno ADD CONSTRAINT PK_idRelleno PRIMARY KEY(idRelleno);
 GO
-ALTER TABLE LOS_BASEADOS.relleno ADD CONSTRAINT FK_relleno_tipoMaterial FOREIGN KEY(idTipoMaterial) REFERENCES LOS_BASEADOS.tipo_material(idTipoMaterial);
+ALTER TABLE LOS_BASEADOS.relleno ADD CONSTRAINT FK_relleno_material FOREIGN KEY(idMaterial) REFERENCES LOS_BASEADOS.material(idMaterial);
 GO
 
 ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT PK_idDetalleCompra PRIMARY KEY(idDetalleCompra);
 GO
 ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT FK_detalleCompra_compra FOREIGN KEY(numeroCompra) REFERENCES LOS_BASEADOS.compra(numeroCompra);
 GO
-ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT FK_detalleCompra_tipoMaterial FOREIGN KEY(idTipoMaterial) REFERENCES LOS_BASEADOS.tipo_material(idTipoMaterial);
-GO
-
-ALTER TABLE LOS_BASEADOS.material ADD CONSTRAINT PK_idMaterial PRIMARY KEY(idMaterial);
-GO
-ALTER TABLE LOS_BASEADOS.material ADD CONSTRAINT FK_material_tipoMaterial FOREIGN KEY(idTipoMaterial) REFERENCES LOS_BASEADOS.tipo_material(idTipoMaterial);
+ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT FK_detalleCompra_material FOREIGN KEY(idMaterial) REFERENCES LOS_BASEADOS.material(idMaterial);
 GO
 
 ALTER TABLE LOS_BASEADOS.modelo_sillon ADD CONSTRAINT PK_codigoModelo PRIMARY KEY(codigoModelo);
@@ -400,6 +400,73 @@ BEGIN
 END
 GO
 
+CREATE PROC LOS_BASEADOS.migrar_tipoMaterial AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.tipo_material (tipo)
+    SElECT DISTINCT Material_tipo 
+    FROM Maestra 
+    WHERE Material_tipo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_materiales AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.material (idTipoMaterial, nombre, descripcion, precio)
+    SELECT DISTINCT t.idTipoMaterial, m.Material_Nombre, m.Material_descripcion, m.Material_Precio
+    FROM Maestra m JOIN LOS_BASEADOS.tipo_material t ON m.Material_Tipo = t.tipo
+    WHERE Material_tipo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_telas AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.tela (idMaterial, color, textura)
+    SELECT DISTINCT t.idMaterial, m.Tela_Color, m.Tela_Textura
+    FROM Maestra m JOIN LOS_BASEADOS.material t ON m.Material_Nombre = t.nombre AND m.Material_Descripcion = t.descripcion
+    WHERE m.Tela_Color IS NOT NULL AND m.Tela_Textura IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_maderas AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.madera (idMaterial, color, dureza)
+    SELECT DISTINCT t.idMaterial, m.Madera_Color, m.Madera_Dureza
+    FROM Maestra m JOIN LOS_BASEADOS.material t ON m.Material_Nombre = t.nombre AND m.Material_Descripcion = t.descripcion
+    WHERE m.Madera_Color IS NOT NULL AND m.Madera_Dureza IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_rellenos AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.relleno (idMaterial, densidad)
+    SELECT DISTINCT t.idMaterial, m.Relleno_Densidad
+    FROM Maestra m JOIN LOS_BASEADOS.material t ON m.Material_Nombre = t.nombre AND m.Material_Descripcion = t.descripcion
+    WHERE m.Relleno_Densidad IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_compras AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.compra (numeroCompra, numeroSucursal, idProveedor, fecha, total)
+    SELECT DISTINCT m.Compra_Numero, s.numeroSucursal, p.idProveedor, m.Compra_Fecha, m.Compra_Total
+    FROM Maestra m JOIN LOS_BASEADOS.sucursal s ON m.Sucursal_NroSucursal = s.numeroSucursal
+                    JOIN LOS_BASEADOS.proveedor p ON m.Proveedor_Cuit = p.cuit AND m.Proveedor_RazonSocial = p.razonSocial
+    WHERE m.Compra_Numero IS NOT NULL AND m.Proveedor_Cuit IS NOT NULL AND m.Proveedor_RazonSocial IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_detalleCompra AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.detalle_compra (numeroCompra, idMaterial, precioUnitario, cantidad, subtotal)
+    SELECT c.numeroCompra, mat.idMaterial, m.Detalle_Compra_Precio, m.Detalle_Compra_Cantidad, m.Detalle_Compra_SubTotal
+    FROM Maestra m JOIN LOS_BASEADOS.compra c ON m.Compra_Numero = c.numeroCompra
+                    JOIN LOS_BASEADOS.material mat ON m.Material_Nombre = mat.nombre AND m.Material_Descripcion = mat.descripcion
+    WHERE m.Detalle_Compra_Cantidad IS NOT NULL AND m.Detalle_Compra_Precio IS NOT NULL AND m.Detalle_Compra_SubTotal IS NOT NULL 
+        AND m.Compra_Numero IS NOT NULL
+    ORDER BY c.numeroCompra ASC
+END
+GO
+
 -- CREACION DE INDICES
 
 /*
@@ -417,3 +484,17 @@ EXEC LOS_BASEADOS.migrar_localidades
 EXEC LOS_BASEADOS.migrar_sucursales
 
 EXEC LOS_BASEADOS.migrar_proveedores
+
+EXEC LOS_BASEADOS.migrar_tipoMaterial
+
+EXEC LOS_BASEADOS.migrar_materiales
+
+EXEC LOS_BASEADOS.migrar_telas
+
+EXEC LOS_BASEADOS.migrar_maderas
+
+EXEC LOS_BASEADOS.migrar_rellenos
+
+EXEC LOS_BASEADOS.migrar_compras
+
+EXEC LOS_BASEADOS.migrar_detalleCompra
