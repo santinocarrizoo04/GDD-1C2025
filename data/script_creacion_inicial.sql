@@ -103,7 +103,8 @@ GO
 CREATE TABLE LOS_BASEADOS.modelo_sillon(
     codigoModelo BIGINT NOT NULL,
     descripcion NVARCHAR(255) NOT NULL,
-    precio DECIMAL(18,2) NOT NULL
+    precio DECIMAL(18,2) NOT NULL,
+	modelo NVARCHAR(255) NOT NULL
 );
 GO
 
@@ -120,7 +121,7 @@ CREATE TABLE LOS_BASEADOS.sillon(
     codigoSillon BIGINT NOT NULL,
     codigoModelo BIGINT NOT NULL,
     idMedidas INT NOT NULL,
-    modelo NVARCHAR(255) NOT NULL
+    
 );
 GO
 
@@ -178,6 +179,7 @@ CREATE TABLE LOS_BASEADOS.detalle_pedido(
 GO
 
 CREATE TABLE LOS_BASEADOS.factura(
+	idFactura BIGINT NOT NULL IDENTITY(1,1),
     numeroFactura BIGINT NOT NULL,
     numeroSucursal BIGINT NOT NULL,
     idCliente BIGINT NOT NULL,
@@ -188,7 +190,7 @@ GO
 
 CREATE TABLE LOS_BASEADOS.detalle_factura(
     idDetalleFactura BIGINT NOT NULL IDENTITY(1,1),
-    numeroFactura BIGINT NOT NULL,
+    idFactura BIGINT NOT NULL,
     idDetallePedido BIGINT NOT NULL,
     precioUnitario DECIMAL(18,2) NOT NULL,
     cantidad DECIMAL(18,0) NOT NULL,
@@ -198,15 +200,17 @@ CREATE TABLE LOS_BASEADOS.detalle_factura(
 GO
 
 CREATE TABLE LOS_BASEADOS.envio(
-    numeroEnvio DECIMAL(18,0) NOT NULL,
-    numeroFactura BIGINT NOT NULL,
+    idEnvio BIGINT NOT NULL IDENTITY(1,1),
+	numeroEnvio DECIMAL(18,0) NOT NULL,
+    idFactura BIGINT NOT NULL,
     fechaProgramada DATETIME2(6) NOT NULL,
     fechaEntrega DATETIME2(6) NOT NULL,
     importeTraslado DECIMAL(18,2) NOT NULL,
     importeSubida DECIMAL(18,2) NOT NULL,
-    subtotal DECIMAL(18,2) NOT NULL
+    total DECIMAL(18,2) NOT NULL
 );
 GO
+
 
 -- CREACION DE CONSTRAINTS DE LAS TABLAS (PKS, FKS, ETC)
 
@@ -313,7 +317,7 @@ GO
 ALTER TABLE LOS_BASEADOS.detalle_pedido ADD CONSTRAINT FK_detallePedido_sillon FOREIGN KEY(codigoSillon) REFERENCES LOS_BASEADOS.sillon(codigoSillon);
 GO
 
-ALTER TABLE LOS_BASEADOS.factura ADD CONSTRAINT PK_numeroFactura PRIMARY KEY(numeroFactura);
+ALTER TABLE LOS_BASEADOS.factura ADD CONSTRAINT PK_idFactura PRIMARY KEY(idFactura);
 GO
 ALTER TABLE LOS_BASEADOS.factura ADD CONSTRAINT FK_factura_sucursal FOREIGN KEY(numeroSucursal) REFERENCES LOS_BASEADOS.sucursal(numeroSucursal);
 GO
@@ -322,14 +326,14 @@ GO
 
 ALTER TABLE LOS_BASEADOS.detalle_factura ADD CONSTRAINT PK_idDetalleFactura PRIMARY KEY(idDetalleFactura);
 GO
-ALTER TABLE LOS_BASEADOS.detalle_factura ADD CONSTRAINT FK_detalleFactura_factura FOREIGN KEY(numeroFactura) REFERENCES LOS_BASEADOS.factura(numeroFactura);
+ALTER TABLE LOS_BASEADOS.detalle_factura ADD CONSTRAINT FK_detalleFactura_factura FOREIGN KEY(idFactura) REFERENCES LOS_BASEADOS.factura(idFactura);
 GO
 ALTER TABLE LOS_BASEADOS.detalle_factura ADD CONSTRAINT FK_detalleFactura_detallePedido FOREIGN KEY(idDetallePedido) REFERENCES LOS_BASEADOS.detalle_pedido(idDetallePedido);
 GO
 
-ALTER TABLE LOS_BASEADOS.envio ADD CONSTRAINT PK_numeroEnvio PRIMARY KEY(numeroEnvio);
+ALTER TABLE LOS_BASEADOS.envio ADD CONSTRAINT PK_idEnvio PRIMARY KEY(idEnvio);
 GO
-ALTER TABLE LOS_BASEADOS.envio ADD CONSTRAINT FK_envio_factura FOREIGN KEY(numeroFactura) REFERENCES LOS_BASEADOS.factura(numeroFactura);
+ALTER TABLE LOS_BASEADOS.envio ADD CONSTRAINT FK_envio_factura FOREIGN KEY(idFactura) REFERENCES LOS_BASEADOS.factura(idFactura);
 GO
 
 -- CREACION DE PROCEDURES DE MIGRACION
@@ -467,6 +471,41 @@ BEGIN
 END
 GO
 
+CREATE PROC LOS_BASEADOS.migrar_cliente AS
+BEGIN
+INSERT INTO LOS_BASEADOS.cliente (idLocalidad, dni , nombre, apellido, fechaNacimiento, telefono, mail, direccion)
+SELECT distinct l.idLocalidad,m.Cliente_Dni,m.Cliente_Nombre,m.Cliente_Apellido,m.Cliente_FechaNacimiento,m.Cliente_Telefono,m.Cliente_Mail,m.Cliente_Direccion 
+from Maestra m 
+JOIN LOS_BASEADOS.provincia p on m.Cliente_Provincia=p.provincia
+JOIN LOS_BASEADOS.localidad l on m.Cliente_Localidad = l.localidad AND l.idProvincia = p.idProvincia
+WHERE m.Cliente_DNI IS NOT NULL AND m.Cliente_Nombre IS NOT NULL AND m.Cliente_Apellido IS NOT NULL 
+AND m.Cliente_FechaNacimiento IS NOT NULL AND m.Cliente_Telefono IS NOT NULL and m.Cliente_Mail IS NOT NULL and m.Cliente_Direccion IS NOT NULL 
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_factura AS
+BEGIN
+INSERT INTO LOS_BASEADOS.factura (numeroFactura,numeroSucursal,idCliente,fecha,total)
+select distinct m.Factura_Numero, s.numeroSucursal, c.idCliente, m.Factura_Fecha, m.Factura_Total from maestra m 
+join LOS_BASEADOS.sucursal s on m.Sucursal_NroSucursal = s.numeroSucursal
+join LOS_BASEADOS.cliente c on m.Cliente_Dni = c.dni
+WHERE m.Factura_Numero IS NOT NULL AND m.Factura_Fecha is not null and m.Factura_Total is not null and m.factura_numero<>33048604 order by Factura_Numero
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_envio AS 
+BEGIN
+INSERT INTO LOS_BASEADOS.envio (numeroEnvio,idFactura,fechaProgramada,fechaEntrega,importeTraslado,importeSubida,total)
+SELECT DISTINCT m.Envio_Numero,f.idFactura, m.Envio_Fecha_Programada, m.Envio_Fecha, m.Envio_ImporteTraslado, m.Envio_importeSubida, m.Envio_Total
+from Maestra m join LOS_BASEADOS.factura f on f.numeroFactura = m.Factura_Numero
+where  m.Envio_Fecha_Programada is not null and m.Envio_Fecha is not null and m.Envio_ImporteTraslado is not null and m.Envio_importesubida is not null and m.Envio_Total is not null
+ORDER BY m.Envio_Numero
+END
+GO
+
+
+--select distinct sillon_modelo,sillon_modelo_descripcion,Sillon_Modelo_Codigo from maestra
+
 -- CREACION DE INDICES
 
 /*
@@ -498,3 +537,9 @@ EXEC LOS_BASEADOS.migrar_rellenos
 EXEC LOS_BASEADOS.migrar_compras
 
 EXEC LOS_BASEADOS.migrar_detalleCompra
+
+EXEC LOS_BASEADOS.migrar_cliente
+
+EXEC LOS_BASEADOS.migrar_factura
+
+EXEC LOS_BASEADOS.migrar_envio
