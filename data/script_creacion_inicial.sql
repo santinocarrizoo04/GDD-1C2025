@@ -473,38 +473,190 @@ GO
 
 CREATE PROC LOS_BASEADOS.migrar_cliente AS
 BEGIN
-INSERT INTO LOS_BASEADOS.cliente (idLocalidad, dni , nombre, apellido, fechaNacimiento, telefono, mail, direccion)
-SELECT distinct l.idLocalidad,m.Cliente_Dni,m.Cliente_Nombre,m.Cliente_Apellido,m.Cliente_FechaNacimiento,m.Cliente_Telefono,m.Cliente_Mail,m.Cliente_Direccion 
-from Maestra m 
-JOIN LOS_BASEADOS.provincia p on m.Cliente_Provincia=p.provincia
-JOIN LOS_BASEADOS.localidad l on m.Cliente_Localidad = l.localidad AND l.idProvincia = p.idProvincia
-WHERE m.Cliente_DNI IS NOT NULL AND m.Cliente_Nombre IS NOT NULL AND m.Cliente_Apellido IS NOT NULL 
-AND m.Cliente_FechaNacimiento IS NOT NULL AND m.Cliente_Telefono IS NOT NULL and m.Cliente_Mail IS NOT NULL and m.Cliente_Direccion IS NOT NULL 
+	INSERT INTO LOS_BASEADOS.cliente (idLocalidad, dni , nombre, apellido, fechaNacimiento, telefono, mail, direccion)
+	SELECT DISTINCT
+		l.idLocalidad,
+		m.Cliente_Dni,
+		m.Cliente_Nombre,
+		m.Cliente_Apellido,
+		m.Cliente_FechaNacimiento,
+		m.Cliente_Telefono,
+		m.Cliente_Mail,
+		m.Cliente_Direccion 
+	FROM Maestra m 
+	JOIN LOS_BASEADOS.provincia p ON m.Cliente_Provincia=p.provincia
+	JOIN LOS_BASEADOS.localidad l ON m.Cliente_Localidad = l.localidad AND l.idProvincia = p.idProvincia
+	WHERE   m.Cliente_DNI IS NOT NULL 
+		AND m.Cliente_Nombre IS NOT NULL 
+		AND m.Cliente_Apellido IS NOT NULL 
+		AND m.Cliente_FechaNacimiento IS NOT NULL 
+		AND m.Cliente_Telefono IS NOT NULL 
+		AND m.Cliente_Mail IS NOT NULL 
+		AND m.Cliente_Direccion IS NOT NULL 
 END
 GO
 
 CREATE PROC LOS_BASEADOS.migrar_factura AS
 BEGIN
-INSERT INTO LOS_BASEADOS.factura (numeroFactura,numeroSucursal,idCliente,fecha,total)
-select distinct m.Factura_Numero, s.numeroSucursal, c.idCliente, m.Factura_Fecha, m.Factura_Total from maestra m 
-join LOS_BASEADOS.sucursal s on m.Sucursal_NroSucursal = s.numeroSucursal
-join LOS_BASEADOS.cliente c on m.Cliente_Dni = c.dni
-WHERE m.Factura_Numero IS NOT NULL AND m.Factura_Fecha is not null and m.Factura_Total is not null and m.factura_numero<>33048604 order by Factura_Numero
+	INSERT INTO LOS_BASEADOS.factura (numeroFactura,numeroSucursal,idCliente,fecha,total)
+	select distinct m.Factura_Numero, s.numeroSucursal, c.idCliente, m.Factura_Fecha, m.Factura_Total from maestra m 
+	JOIN LOS_BASEADOS.sucursal s ON m.Sucursal_NroSucursal = s.numeroSucursal
+	JOIN LOS_BASEADOS.cliente c ON m.Cliente_Dni = c.dni
+	WHERE   m.Factura_Numero IS NOT NULL 
+		AND m.Factura_Fecha IS NOT NULL 
+		AND m.Factura_Total IS NOT NULL 
+		AND m.factura_numero<>33048604 
+	ORDER BY Factura_Numero
 END
 GO
 
 CREATE PROC LOS_BASEADOS.migrar_envio AS 
 BEGIN
-INSERT INTO LOS_BASEADOS.envio (numeroEnvio,idFactura,fechaProgramada,fechaEntrega,importeTraslado,importeSubida,total)
-SELECT DISTINCT m.Envio_Numero,f.idFactura, m.Envio_Fecha_Programada, m.Envio_Fecha, m.Envio_ImporteTraslado, m.Envio_importeSubida, m.Envio_Total
-from Maestra m join LOS_BASEADOS.factura f on f.numeroFactura = m.Factura_Numero
-where  m.Envio_Fecha_Programada is not null and m.Envio_Fecha is not null and m.Envio_ImporteTraslado is not null and m.Envio_importesubida is not null and m.Envio_Total is not null
-ORDER BY m.Envio_Numero
+	INSERT INTO LOS_BASEADOS.envio (numeroEnvio, idFactura, fechaProgramada, fechaEntrega, importeTraslado, importeSubida, total)
+	SELECT DISTINCT 
+		m.Envio_Numero,
+		f.idFactura, 
+		m.Envio_Fecha_Programada, 
+		m.Envio_Fecha, 
+		m.Envio_ImporteTraslado, 
+		m.Envio_importeSubida, 
+		m.Envio_Total
+	FROM Maestra m 
+	JOIN LOS_BASEADOS.factura f ON f.numeroFactura = m.Factura_Numero
+	WHERE   m.Envio_Fecha_Programada IS NOT NULL 
+		AND m.Envio_Fecha IS NOT NULL 
+		AND m.Envio_ImporteTraslado IS NOT NULL 
+		AND m.Envio_importesubida IS NOT NULL 
+		AND m.Envio_Total IS NOT NULL 
+	ORDER BY m.Envio_Numero
 END
 GO
 
 
---select distinct sillon_modelo,sillon_modelo_descripcion,Sillon_Modelo_Codigo from maestra
+CREATE PROC LOS_BASEADOS.migrar_modeloSillon AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.modelo_sillon (codigoModelo, modelo, descripcion, precio)
+    SELECT DISTINCT 
+        m.Sillon_Modelo_Codigo, 
+        m.Sillon_Modelo, 
+        m.Sillon_Modelo_Descripcion, 
+        m.Sillon_Modelo_Precio
+    FROM Maestra m
+    WHERE m.Sillon_Modelo_Codigo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_medidas AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.medidas (alto, ancho, profundidad, precio)
+    SELECT DISTINCT 
+        m.Sillon_Medida_Alto,
+        m.Sillon_Medida_Ancho,
+        m.Sillon_Medida_Profundidad,
+        m.Sillon_Medida_Precio
+    FROM Maestra m
+    WHERE m.Sillon_Medida_Alto IS NOT NULL 
+      AND m.Sillon_Medida_Ancho IS NOT NULL 
+      AND m.Sillon_Medida_Profundidad IS NOT NULL
+	  AND m.Sillon_Medida_Precio IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_sillones AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.sillon (codigoSillon, codigoModelo, idMedidas)
+    SELECT DISTINCT 
+        m.Sillon_Codigo,
+        mo.codigoModelo,
+        me.idMedidas
+    FROM Maestra m
+    JOIN LOS_BASEADOS.modelo_sillon mo ON m.Sillon_Modelo_Codigo = mo.codigoModelo
+    JOIN LOS_BASEADOS.medidas me ON 
+        m.Sillon_Medida_Alto = me.alto AND
+        m.Sillon_Medida_Ancho = me.ancho AND
+        m.Sillon_Medida_Profundidad = me.profundidad AND
+        m.Sillon_Medida_Precio = me.precio
+    WHERE m.Sillon_Codigo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_materialXSillon AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.material_x_sillon (codigoSillon, idMaterial)
+    SELECT DISTINCT 
+        m.Sillon_Codigo,
+        mat.idMaterial
+    FROM Maestra m
+    JOIN LOS_BASEADOS.material mat ON m.Material_Nombre = mat.nombre AND m.Material_Descripcion = mat.descripcion
+    WHERE m.Sillon_Codigo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_pedidos AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.pedido (numeroPedido, numeroSucursal, idCliente, idEstado, fecha, total)
+    SELECT DISTINCT 
+        m.Pedido_Numero,
+        s.numeroSucursal,
+        c.idCliente,
+        e.idEstado,
+        m.Pedido_Fecha,
+        m.Pedido_Total
+    FROM Maestra m
+    JOIN LOS_BASEADOS.sucursal s ON m.Sucursal_NroSucursal = s.numeroSucursal
+    JOIN LOS_BASEADOS.cliente c ON m.Cliente_Dni = c.dni
+    JOIN LOS_BASEADOS.estado e ON m.Pedido_Estado = e.estado
+    WHERE m.Pedido_Numero IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_cancelaciones AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.cancelacion (numeroPedido, fecha, motivo)
+    SELECT DISTINCT 
+        m.Pedido_Numero,
+        m.Pedido_Cancelacion_Fecha,
+        m.Pedido_Cancelacion_Motivo
+    FROM Maestra m
+    WHERE m.Pedido_Cancelacion_Fecha IS NOT NULL AND m.Pedido_Cancelacion_Motivo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_detallePedido AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.detalle_pedido (numeroPedido, codigoSillon, precio, cantidad, subtotal)
+    SELECT DISTINCT 
+        m.Pedido_Numero,
+        s.codigoSillon,
+        m.Detalle_Pedido_Precio,
+        m.Detalle_Pedido_Cantidad,
+        m.Detalle_Pedido_SubTotal
+    FROM Maestra m
+    JOIN LOS_BASEADOS.sillon s ON m.Sillon_Codigo = s.codigoSillon
+	JOIN LOS_BASEADOS.pedido p ON m.Pedido_Numero = p.numeroPedido
+    WHERE m.Pedido_Numero IS NOT NULL AND m.Sillon_Codigo IS NOT NULL
+END
+GO
+
+CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
+    SELECT DISTINCT 
+        f.idFactura,
+        dp.idDetallePedido,
+        m.Detalle_Factura_Precio,
+        m.Detalle_Factura_Cantidad,
+        m.Detalle_Factura_SubTotal
+    FROM Maestra m
+    JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
+    JOIN LOS_BASEADOS.detalle_pedido dp ON 
+        m.Pedido_Numero = dp.numeroPedido AND
+        m.Detalle_Pedido_Precio = dp.precio AND
+        m.Detalle_Pedido_Cantidad = dp.cantidad
+    WHERE m.Factura_Numero IS NOT NULL
+	ORDER BY f.idFactura
+END
+GO
 
 -- CREACION DE INDICES
 
@@ -515,31 +667,25 @@ CREATE INDEX idx ON LOS_BASEADOS.tabla (idCliente);
 -- EJECUCION DE PROCEDURES
 
 EXEC LOS_BASEADOS.migrar_estados
-
 EXEC LOS_BASEADOS.migrar_provincias
-
 EXEC LOS_BASEADOS.migrar_localidades
-
 EXEC LOS_BASEADOS.migrar_sucursales
-
 EXEC LOS_BASEADOS.migrar_proveedores
-
 EXEC LOS_BASEADOS.migrar_tipoMaterial
-
 EXEC LOS_BASEADOS.migrar_materiales
-
 EXEC LOS_BASEADOS.migrar_telas
-
 EXEC LOS_BASEADOS.migrar_maderas
-
 EXEC LOS_BASEADOS.migrar_rellenos
-
 EXEC LOS_BASEADOS.migrar_compras
-
 EXEC LOS_BASEADOS.migrar_detalleCompra
-
 EXEC LOS_BASEADOS.migrar_cliente
-
 EXEC LOS_BASEADOS.migrar_factura
-
 EXEC LOS_BASEADOS.migrar_envio
+EXEC LOS_BASEADOS.migrar_modeloSillon
+EXEC LOS_BASEADOS.migrar_medidas
+EXEC LOS_BASEADOS.migrar_sillones
+EXEC LOS_BASEADOS.migrar_materialXSillon
+EXEC LOS_BASEADOS.migrar_pedidos
+EXEC LOS_BASEADOS.migrar_cancelaciones
+EXEC LOS_BASEADOS.migrar_detallePedido
+EXEC LOS_BASEADOS.migrar_detalleFactura
