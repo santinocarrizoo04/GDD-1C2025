@@ -665,7 +665,7 @@ BEGIN
 END
 GO
 
--- VERSION 1
+-- VERSION 1 -- 61.228 filas
 /*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
@@ -685,10 +685,10 @@ BEGIN
     WHERE m.Factura_Numero IS NOT NULL
 	ORDER BY f.idFactura
 END
-GO -- 61.228
+GO 
 */
 
--- VERSION 2
+-- VERSION 2 -- 61.092 -- usa ROW_NUMBER() OVER + PARTITION BY
 /*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
@@ -723,10 +723,10 @@ BEGIN
     WHERE m.Factura_Numero IS NOT NULL
     ORDER BY f.idFactura
 END
-GO -- 61.092
+GO 
 */
 
--- VERSION 3
+-- VERSION 3 -- 61.092 -- usa CORSS APPLY
 /*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
@@ -750,10 +750,10 @@ BEGIN
     WHERE m.Factura_Numero IS NOT NULL
     ORDER BY f.idFactura
 END
-GO --61.092
+GO 
 */
 
--- VERSION 4
+-- VERSION 4 -- 61.092 -- no usa nada raro
 /*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
@@ -784,10 +784,10 @@ BEGIN
       ) IS NOT NULL
     ORDER BY f.idFactura;
 END
-GO -- 61.092 -- 30 lineas
+GO
 */
 
--- VERSION 5
+-- VERSION 5 -- 61.092 -- no usa nada raro
 /*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
@@ -820,11 +820,11 @@ BEGIN
       AND mcd.idDetallePedido IS NOT NULL
     ORDER BY f.idFactura;
 END
-GO -- 61.092 -- 32 lineas
+GO
 */
 
 /*
--- VERSION 6
+-- VERSION 6 -- 61.087 -- no repite detalle_pedido en los detalle_factura PERO usa ROW_NUMBER() OVER + PARTITION BY
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
 	WITH posibles_pareos AS (
@@ -858,7 +858,7 @@ BEGIN
 	WHERE rn = 1
 	ORDER BY idFactura;
 END
-GO -- 61.087 -- no repite detalle_pedido en los detalle_factura
+GO 
 */
 
 -- Si la consulta devuelve filas, significa que hay detalles de pedido que están siendo facturados más de una vez.
