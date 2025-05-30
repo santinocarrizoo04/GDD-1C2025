@@ -665,6 +665,8 @@ BEGIN
 END
 GO
 
+-- VERSION 1
+/*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
     INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
@@ -684,6 +686,7 @@ BEGIN
 	ORDER BY f.idFactura
 END
 GO -- 61.228
+*/
 
 -- VERSION 2
 /*
@@ -749,6 +752,77 @@ BEGIN
 END
 GO --61.092
 */
+
+-- VERSION 4
+/*
+CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
+BEGIN
+    INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
+    SELECT
+        f.idFactura,
+        (
+            SELECT TOP 1 dp2.idDetallePedido
+            FROM LOS_BASEADOS.detalle_pedido dp2
+            WHERE dp2.numeroPedido = m.Pedido_Numero
+              AND dp2.precio = m.Detalle_Pedido_Precio
+              AND dp2.cantidad = m.Detalle_Pedido_Cantidad
+              AND dp2.subtotal = m.Detalle_Pedido_SubTotal
+        ) AS idDetallePedido,
+        m.Detalle_Factura_Precio,
+        m.Detalle_Factura_Cantidad,
+        m.Detalle_Factura_SubTotal
+    FROM Maestra m
+    JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
+    WHERE m.Factura_Numero IS NOT NULL
+      AND (
+          SELECT TOP 1 dp2.idDetallePedido
+          FROM LOS_BASEADOS.detalle_pedido dp2
+          WHERE dp2.numeroPedido = m.Pedido_Numero
+            AND dp2.precio = m.Detalle_Pedido_Precio
+            AND dp2.cantidad = m.Detalle_Pedido_Cantidad
+            AND dp2.subtotal = m.Detalle_Pedido_SubTotal
+      ) IS NOT NULL
+    ORDER BY f.idFactura;
+END
+GO -- 61.092 -- 30 lineas
+*/
+
+-- VERSION 5
+/*
+CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
+BEGIN
+    WITH MaestraConDetalle AS (
+        SELECT 
+            m.*,
+            (
+                SELECT TOP 1 dp2.idDetallePedido
+                FROM LOS_BASEADOS.detalle_pedido dp2
+                WHERE dp2.numeroPedido = m.Pedido_Numero
+                  AND dp2.precio = m.Detalle_Pedido_Precio
+                  AND dp2.cantidad = m.Detalle_Pedido_Cantidad
+                  AND dp2.subtotal = m.Detalle_Pedido_SubTotal
+            ) AS idDetallePedido
+        FROM Maestra m
+    )
+    INSERT INTO LOS_BASEADOS.detalle_factura (
+        idFactura, idDetallePedido, precioUnitario, cantidad, subtotal
+    )
+    SELECT 
+        f.idFactura,
+        mcd.idDetallePedido,
+        mcd.Detalle_Factura_Precio,
+        mcd.Detalle_Factura_Cantidad,
+        mcd.Detalle_Factura_SubTotal
+    FROM MaestraConDetalle mcd
+    JOIN LOS_BASEADOS.factura f 
+        ON mcd.Factura_Numero = f.numeroFactura
+    WHERE mcd.Factura_Numero IS NOT NULL
+      AND mcd.idDetallePedido IS NOT NULL
+    ORDER BY f.idFactura;
+END
+GO -- 61.092 -- 32 lineas
+*/
+
 
 -- CREACION DE INDICES
 
