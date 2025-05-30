@@ -39,6 +39,25 @@ DROP PROCEDURE LOS_BASEADOS.migrar_detalleCompra
 DROP PROCEDURE LOS_BASEADOS.migrar_cliente
 DROP PROCEDURE LOS_BASEADOS.migrar_factura
 DROP PROCEDURE LOS_BASEADOS.migrar_envio
+DROP PROCEDURE LOS_BASEADOS.migrar_modeloSillon
+DROP PROCEDURE LOS_BASEADOS.migrar_medidas
+DROP PROCEDURE LOS_BASEADOS.migrar_sillones
+DROP PROCEDURE LOS_BASEADOS.migrar_materialXSillon
+DROP PROCEDURE LOS_BASEADOS.migrar_pedidos
+DROP PROCEDURE LOS_BASEADOS.migrar_cancelaciones
+DROP PROCEDURE LOS_BASEADOS.migrar_detallePedido
+DROP PROCEDURE LOS_BASEADOS.migrar_detalleFactura
+
+DROP INDEX IX_localidad_provincia_localidad ON LOS_BASEADOS.localidad;
+DROP INDEX IX_cliente_dni ON LOS_BASEADOS.cliente;
+DROP INDEX IX_factura_numeroFactura ON LOS_BASEADOS.factura;
+DROP INDEX IX_pedido_numeroPedido ON LOS_BASEADOS.pedido;
+/*DROP INDEX IX_detallePedido_numeroPedido ON LOS_BASEADOS.detalle_pedido;*/
+DROP INDEX IX_detalleFactura_idFactura ON LOS_BASEADOS.detalle_factura;
+DROP INDEX IX_sillon_codigoSillon ON LOS_BASEADOS.sillon;
+DROP INDEX IX_materialXSillon_idMaterial ON LOS_BASEADOS.material_x_sillon;
+DROP INDEX IX_materialXSillon_codigoSillon ON LOS_BASEADOS.material_x_sillon;
+DROP INDEX IX_detalleCompra_numeroCompra ON LOS_BASEADOS.detalle_compra;
 
 DROP SYNONYM Maestra
 DROP SCHEMA LOS_BASEADOS
