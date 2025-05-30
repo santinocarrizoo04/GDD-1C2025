@@ -823,6 +823,49 @@ END
 GO -- 61.092 -- 32 lineas
 */
 
+/*
+-- VERSION 6
+CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
+BEGIN
+	WITH posibles_pareos AS (
+		SELECT 
+			f.idFactura,
+			dp.idDetallePedido,
+			m.Detalle_Factura_Precio,
+			m.Detalle_Factura_Cantidad,
+			m.Detalle_Factura_SubTotal,
+			ROW_NUMBER() OVER (
+				PARTITION BY m.Pedido_Numero, m.Detalle_Pedido_Precio, m.Detalle_Pedido_Cantidad, m.Detalle_Pedido_SubTotal
+				ORDER BY f.idFactura, dp.idDetallePedido
+			) AS rn
+		FROM Maestra m
+		JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
+		JOIN LOS_BASEADOS.detalle_pedido dp ON 
+			dp.numeroPedido = m.Pedido_Numero AND
+			dp.precio = m.Detalle_Pedido_Precio AND
+			dp.cantidad = m.Detalle_Pedido_Cantidad AND
+			dp.subtotal = m.Detalle_Pedido_SubTotal
+		WHERE m.Factura_Numero IS NOT NULL
+	)
+	INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
+	SELECT 
+		idFactura,
+		idDetallePedido,
+		Detalle_Factura_Precio AS precioUnitario,
+		Detalle_Factura_Cantidad AS cantidad,
+		Detalle_Factura_SubTotal AS subtotal
+	FROM posibles_pareos
+	WHERE rn = 1
+	ORDER BY idFactura;
+END
+GO -- 61.087 -- no repite detalle_pedido en los detalle_factura
+*/
+
+-- Si la consulta devuelve filas, significa que hay detalles de pedido que están siendo facturados más de una vez.
+SELECT idDetallePedido, COUNT(*) AS apariciones
+FROM LOS_BASEADOS.detalle_factura
+GROUP BY idDetallePedido
+HAVING COUNT(*) > 1;
 
 -- CREACION DE INDICES
 
