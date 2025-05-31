@@ -1,14 +1,15 @@
-USE GD1C2025
+USE GD1C2025 -- Usa la DB GD1C2025
 GO
 
+-- Crea el schema del grupo
 CREATE SCHEMA LOS_BASEADOS
 GO
 
+-- Crea un sinonimo para la tabla maestra
 CREATE SYNONYM Maestra FOR gd_esquema.Maestra;
 GO
 
--- CREACION DE TABLAS (TODO DENTRO DEL SCHEMA LOS_BASEADOS!)
-
+-- CREACION DE TABLAS DEL MODELO RELACIONAL DESARROLLADO
 
 CREATE TABLE LOS_BASEADOS.provincia(
     idProvincia TINYINT NOT NULL IDENTITY(1,1),
@@ -44,8 +45,7 @@ CREATE TABLE LOS_BASEADOS.proveedor(
 GO
 
 CREATE TABLE LOS_BASEADOS.compra(
-    --OPCIONAL
-    --idCompra BIGINT NOT NULL IDENTITY(1,1),
+    idCompra BIGINT NOT NULL IDENTITY(1,1),
     numeroCompra DECIMAL(18,0) NOT NULL,
     numeroSucursal BIGINT NOT NULL,
     idProveedor INT NOT NULL,
@@ -85,7 +85,7 @@ GO
 
 CREATE TABLE LOS_BASEADOS.detalle_compra(
     idDetalleCompra BIGINT NOT NULL IDENTITY(1,1),
-    numeroCompra DECIMAL(18,0) NOT NULL,
+    idCompra BIGINT NOT NULL,
     idMaterial INT NOT NULL,
     precioUnitario DECIMAL(18,2),
     cantidad DECIMAL(18,0),
@@ -204,22 +204,22 @@ CREATE TABLE LOS_BASEADOS.envio(
 	numeroEnvio DECIMAL(18,0) NOT NULL,
     idFactura BIGINT NOT NULL,
     fechaProgramada DATETIME2(6) NOT NULL,
-    fechaEntrega DATETIME2(6) NOT NULL,
+    fechaEntrega DATETIME2(6),
     importeTraslado DECIMAL(18,2) NOT NULL,
     importeSubida DECIMAL(18,2) NOT NULL,
     total DECIMAL(18,2) NOT NULL
 );
 GO
 
+-- CREACION DE CONSTRAINTS DE LAS TABLAS (PKS, FKS)
 
--- CREACION DE CONSTRAINTS DE LAS TABLAS (PKS, FKS, ETC)
-
-
+-- CREACION DE UNA PRIMARY KEY PARA UNA TABLA
 ALTER TABLE LOS_BASEADOS.provincia ADD CONSTRAINT PK_idProvincia PRIMARY KEY(idProvincia);
 GO
 
 ALTER TABLE LOS_BASEADOS.localidad ADD CONSTRAINT PK_idLocalidad PRIMARY KEY(idLocalidad);
 GO
+--CREACION DE UNA FOREIGN KEY PARA UNA TABLA
 ALTER TABLE LOS_BASEADOS.localidad ADD CONSTRAINT FK_localidad_provincia FOREIGN KEY(idProvincia) REFERENCES LOS_BASEADOS.provincia(idProvincia);
 GO
 
@@ -233,7 +233,7 @@ GO
 ALTER TABLE LOS_BASEADOS.proveedor ADD CONSTRAINT FK_proveedor_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
 GO
 
-ALTER TABLE LOS_BASEADOS.compra ADD CONSTRAINT PK_numeroCompra PRIMARY KEY(numeroCompra);
+ALTER TABLE LOS_BASEADOS.compra ADD CONSTRAINT PK_idCompra PRIMARY KEY(idCompra);
 GO
 ALTER TABLE LOS_BASEADOS.compra ADD CONSTRAINT FK_compra_proveedor FOREIGN KEY(idProveedor) REFERENCES LOS_BASEADOS.proveedor(idProveedor);
 GO
@@ -265,7 +265,7 @@ GO
 
 ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT PK_idDetalleCompra PRIMARY KEY(idDetalleCompra);
 GO
-ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT FK_detalleCompra_compra FOREIGN KEY(numeroCompra) REFERENCES LOS_BASEADOS.compra(numeroCompra);
+ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT FK_detalleCompra_compra FOREIGN KEY(idCompra) REFERENCES LOS_BASEADOS.compra(idCompra);
 GO
 ALTER TABLE LOS_BASEADOS.detalle_compra ADD CONSTRAINT FK_detalleCompra_material FOREIGN KEY(idMaterial) REFERENCES LOS_BASEADOS.material(idMaterial);
 GO
@@ -336,7 +336,7 @@ GO
 ALTER TABLE LOS_BASEADOS.envio ADD CONSTRAINT FK_envio_factura FOREIGN KEY(idFactura) REFERENCES LOS_BASEADOS.factura(idFactura);
 GO
 
--- CREACION DE PROCEDURES DE MIGRACION
+-- CREACION DE PROCEDURES DE MIGRACION DE DATOS
 
 CREATE PROC LOS_BASEADOS.migrar_estados AS
 BEGIN
@@ -499,9 +499,9 @@ GO
 
 CREATE PROC LOS_BASEADOS.migrar_detalleCompra AS
 BEGIN
-    INSERT INTO LOS_BASEADOS.detalle_compra (numeroCompra, idMaterial, precioUnitario, cantidad, subtotal)
+    INSERT INTO LOS_BASEADOS.detalle_compra (idCompra, idMaterial, precioUnitario, cantidad, subtotal)
     SELECT 
-		c.numeroCompra, 
+		c.idCompra, 
 		mat.idMaterial, 
 		m.Detalle_Compra_Precio, 
 		m.Detalle_Compra_Cantidad, 
@@ -563,11 +563,10 @@ BEGIN
 		m.Envio_Total
 	FROM Maestra m 
 	JOIN LOS_BASEADOS.factura f ON f.numeroFactura = m.Factura_Numero
-	WHERE m.Envio_Numero IS NOT NULL AND f.idFactura IS NOT NULL AND m.Envio_Fecha_Programada IS NOT NULL AND m.Envio_Fecha IS NOT NULL
+	WHERE m.Envio_Numero IS NOT NULL AND f.idFactura IS NOT NULL AND m.Envio_Fecha_Programada IS NOT NULL
         AND m.Envio_importeSubida IS NOT NULL AND m.Envio_ImporteTraslado IS NOT NULL AND m.Envio_Total IS NOT NULL
 END
 GO
-
 
 CREATE PROC LOS_BASEADOS.migrar_modeloSillon AS
 BEGIN
@@ -649,10 +648,10 @@ CREATE PROC LOS_BASEADOS.migrar_cancelaciones AS
 BEGIN
     INSERT INTO LOS_BASEADOS.cancelacion (numeroPedido, fecha, motivo)
     SELECT DISTINCT 
-        m.Pedido_Numero,
+        p.numeroPedido,
         m.Pedido_Cancelacion_Fecha,
         m.Pedido_Cancelacion_Motivo
-    FROM Maestra m
+    FROM Maestra m JOIN LOS_BASEADOS.pedido p ON m.Pedido_Numero = p.numeroPedido
     WHERE m.Pedido_Cancelacion_Fecha IS NOT NULL AND m.Pedido_Numero IS NOT NULL AND m.Pedido_Cancelacion_Motivo IS NOT NULL
 END
 GO
@@ -661,7 +660,7 @@ CREATE PROC LOS_BASEADOS.migrar_detallePedido AS
 BEGIN
     INSERT INTO LOS_BASEADOS.detalle_pedido (numeroPedido, codigoSillon, precio, cantidad, subtotal)
     SELECT DISTINCT 
-        m.Pedido_Numero,
+        p.numeroPedido,
         s.codigoSillon,
         m.Detalle_Pedido_Precio,
         m.Detalle_Pedido_Cantidad,
@@ -674,130 +673,6 @@ BEGIN
 END
 GO
 
--- VERSION 1 -- 61.228 filas
-/*
-CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
-BEGIN
-    INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
-    SELECT DISTINCT 
-        f.idFactura,
-        dp.idDetallePedido,
-        m.Detalle_Factura_Precio,
-        m.Detalle_Factura_Cantidad,
-        m.Detalle_Factura_SubTotal
-    FROM Maestra m
-    JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
-    JOIN LOS_BASEADOS.detalle_pedido dp ON 
-        m.Pedido_Numero = dp.numeroPedido AND
-        m.Detalle_Pedido_Precio = dp.precio AND
-        m.Detalle_Pedido_Cantidad = dp.cantidad
-    WHERE m.Factura_Numero IS NOT NULL
-	ORDER BY f.idFactura
-END
-GO 
-*/
-
--- VERSION 2 -- 61.092 -- usa ROW_NUMBER() OVER + PARTITION BY
-/*
-CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
-BEGIN
-    WITH dp_filtrado AS (
-        SELECT 
-            dp.idDetallePedido,
-            dp.numeroPedido,
-            dp.precio,
-            dp.cantidad,
-            dp.subtotal,
-            ROW_NUMBER() OVER (
-                PARTITION BY dp.numeroPedido, dp.precio, dp.cantidad, dp.subtotal
-                ORDER BY dp.idDetallePedido
-            ) AS rn
-        FROM LOS_BASEADOS.detalle_pedido dp
-    )
-    INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
-    SELECT 
-        f.idFactura,
-        dpf.idDetallePedido,
-        m.Detalle_Factura_Precio,
-        m.Detalle_Factura_Cantidad,
-        m.Detalle_Factura_SubTotal
-    FROM Maestra m
-    JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
-    JOIN dp_filtrado dpf ON 
-        dpf.numeroPedido = m.Pedido_Numero AND
-        dpf.precio = m.Detalle_Pedido_Precio AND
-        dpf.cantidad = m.Detalle_Pedido_Cantidad AND
-        dpf.subtotal = m.Detalle_Pedido_SubTotal AND
-        dpf.rn = 1
-    WHERE m.Factura_Numero IS NOT NULL
-    ORDER BY f.idFactura
-END
-GO 
-*/
-
--- VERSION 3 -- 61.092 -- usa CORSS APPLY
-/*
-CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
-BEGIN
-    INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
-    SELECT
-        f.idFactura,
-        dp.idDetallePedido,
-        m.Detalle_Factura_Precio,
-        m.Detalle_Factura_Cantidad,
-        m.Detalle_Factura_SubTotal
-    FROM Maestra m
-    JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
-    CROSS APPLY (
-        SELECT TOP 1 dp2.idDetallePedido
-        FROM LOS_BASEADOS.detalle_pedido dp2
-        WHERE dp2.numeroPedido = m.Pedido_Numero AND
-              dp2.precio = m.Detalle_Pedido_Precio AND
-              dp2.cantidad = m.Detalle_Pedido_Cantidad AND
-              dp2.subtotal = m.Detalle_Pedido_SubTotal
-    ) dp
-    WHERE m.Factura_Numero IS NOT NULL
-    ORDER BY f.idFactura
-END
-GO 
-*/
-
--- VERSION 4 -- 61.092 -- no usa nada raro
-/*
-CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
-BEGIN
-    INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
-    SELECT
-        f.idFactura,
-        (
-            SELECT TOP 1 dp2.idDetallePedido
-            FROM LOS_BASEADOS.detalle_pedido dp2
-            WHERE dp2.numeroPedido = m.Pedido_Numero
-              AND dp2.precio = m.Detalle_Pedido_Precio
-              AND dp2.cantidad = m.Detalle_Pedido_Cantidad
-              AND dp2.subtotal = m.Detalle_Pedido_SubTotal
-        ) AS idDetallePedido,
-        m.Detalle_Factura_Precio,
-        m.Detalle_Factura_Cantidad,
-        m.Detalle_Factura_SubTotal
-    FROM Maestra m
-    JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
-    WHERE m.Factura_Numero IS NOT NULL
-      AND (
-          SELECT TOP 1 dp2.idDetallePedido
-          FROM LOS_BASEADOS.detalle_pedido dp2
-          WHERE dp2.numeroPedido = m.Pedido_Numero
-            AND dp2.precio = m.Detalle_Pedido_Precio
-            AND dp2.cantidad = m.Detalle_Pedido_Cantidad
-            AND dp2.subtotal = m.Detalle_Pedido_SubTotal
-      ) IS NOT NULL
-    ORDER BY f.idFactura;
-END
-GO
-*/
-
--- VERSION 5 -- 61.092 -- no usa nada raro
-/*
 CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
 BEGIN
     WITH MaestraConDetalle AS (
@@ -830,55 +705,14 @@ BEGIN
     ORDER BY f.idFactura;
 END
 GO
-*/
-
-/*
--- VERSION 6 -- 61.087 -- no repite detalle_pedido en los detalle_factura PERO usa ROW_NUMBER() OVER + PARTITION BY
-CREATE PROC LOS_BASEADOS.migrar_detalleFactura AS
-BEGIN
-	WITH posibles_pareos AS (
-		SELECT 
-			f.idFactura,
-			dp.idDetallePedido,
-			m.Detalle_Factura_Precio,
-			m.Detalle_Factura_Cantidad,
-			m.Detalle_Factura_SubTotal,
-			ROW_NUMBER() OVER (
-				PARTITION BY m.Pedido_Numero, m.Detalle_Pedido_Precio, m.Detalle_Pedido_Cantidad, m.Detalle_Pedido_SubTotal
-				ORDER BY f.idFactura, dp.idDetallePedido
-			) AS rn
-		FROM Maestra m
-		JOIN LOS_BASEADOS.factura f ON m.Factura_Numero = f.numeroFactura
-		JOIN LOS_BASEADOS.detalle_pedido dp ON 
-			dp.numeroPedido = m.Pedido_Numero AND
-			dp.precio = m.Detalle_Pedido_Precio AND
-			dp.cantidad = m.Detalle_Pedido_Cantidad AND
-			dp.subtotal = m.Detalle_Pedido_SubTotal
-		WHERE m.Factura_Numero IS NOT NULL
-	)
-	INSERT INTO LOS_BASEADOS.detalle_factura (idFactura, idDetallePedido, precioUnitario, cantidad, subtotal)
-	SELECT 
-		idFactura,
-		idDetallePedido,
-		Detalle_Factura_Precio AS precioUnitario,
-		Detalle_Factura_Cantidad AS cantidad,
-		Detalle_Factura_SubTotal AS subtotal
-	FROM posibles_pareos
-	WHERE rn = 1
-	ORDER BY idFactura;
-END
-GO 
-*/
 
 -- CREACION DE INDICES
 
---Ocupan espacio los indices, revisaria cuales realmente necesitamos (tal vez todos eh, no digo que no)
-
         -- LOCALIDAD por localidad(nombre)
---CREATE INDEX IX_localidad_nombre ON LOS_BASEADOS.localidad (localidad);
+CREATE INDEX IX_localidad_nombre ON LOS_BASEADOS.localidad (localidad);
 
 -- LOCALIDAD por provincia(idProvincia)
---CREATE INDEX IX_localidad_provincia ON LOS_BASEADOS.localidad (idProvincia); NO EXISTE YA IDX POR SER FK?
+CREATE INDEX IX_localidad_provincia_localidad ON LOS_BASEADOS.localidad (idProvincia);
 
         -- CLIENTE por DNI
 CREATE INDEX IX_cliente_dni ON LOS_BASEADOS.cliente (dni);
@@ -888,11 +722,6 @@ CREATE INDEX IX_factura_numero ON LOS_BASEADOS.factura (numeroFactura);
 
         -- PEDIDO por numeroPedido
 CREATE INDEX IX_pedido_numero ON LOS_BASEADOS.pedido (numeroPedido);
-
-
-        -- DETALLE_PEDIDO por ??
--- CREATE INDEX IX_detallePedido_numeroPedido ON LOS_BASEADOS.detalle_pedido (??);
-
 
         -- DETALLE_FACTURA por idFactura
 CREATE INDEX IX_detalleFactura_idFactura ON LOS_BASEADOS.detalle_factura (idFactura);
@@ -907,9 +736,10 @@ CREATE INDEX IX_materialXSillon_idMaterial ON LOS_BASEADOS.material_x_sillon (id
 CREATE INDEX IX_materialXSillon_codigoSillon ON LOS_BASEADOS.material_x_sillon (codigoSillon);
 
         -- DETALLE_COMPRA por numeroCompra
-CREATE INDEX IX_detalleCompra_numeroCompra ON LOS_BASEADOS.detalle_compra (numeroCompra);
+CREATE INDEX IX_detalleCompra_numeroCompra ON LOS_BASEADOS.detalle_compra (idCompra);
 
--- EJECUCION DE PROCEDURES
+
+-- EJECUCION DE PROCEDURES CREADOS
 
 EXEC LOS_BASEADOS.migrar_estados
 EXEC LOS_BASEADOS.migrar_provincias
@@ -933,4 +763,4 @@ EXEC LOS_BASEADOS.migrar_materialXSillon
 EXEC LOS_BASEADOS.migrar_pedidos
 EXEC LOS_BASEADOS.migrar_cancelaciones
 EXEC LOS_BASEADOS.migrar_detallePedido
---EXEC LOS_BASEADOS.migrar_detalleFactura
+EXEC LOS_BASEADOS.migrar_detalleFactura
