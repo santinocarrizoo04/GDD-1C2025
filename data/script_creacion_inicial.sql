@@ -44,9 +44,8 @@ CREATE TABLE LOS_BASEADOS.proveedor(
 GO
 
 CREATE TABLE LOS_BASEADOS.compra(
-    --OPCION 1
-    -- idCompra BIGINT NOT NULL IDENTITY(1,1),
-    --OPCION 2 EN CONSTRAINTS
+    --OPCIONAL
+    --idCompra BIGINT NOT NULL IDENTITY(1,1),
     numeroCompra DECIMAL(18,0) NOT NULL,
     numeroSucursal BIGINT NOT NULL,
     idProveedor INT NOT NULL,
