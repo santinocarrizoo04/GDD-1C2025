@@ -1,3 +1,5 @@
+-- SI QUIERO INSERTAR UN DATO QUE NO SE PUEDE, POR EJ UNA FK A UNA PK Q NO ESTA, LA PK DE ESA TABLA SE SALTEA UNO!!!
+
 -- NO HAY PEDIDOS CON EL ESTADO EN NULL 
 SELECT * FROM Maestra WHERE Pedido_estado IS NULL --18119 rows
 SELECT * FROM Maestra WHERE Pedido_estado IS NULL AND Pedido_numero IS NOT NULL --0 rows
@@ -43,6 +45,14 @@ FROM Maestra WHERE Material_tipo IS NOT NULL AND Material_nombre = 'Poliester'
 SELECT DISTINCT Material_tipo, Material_nombre, Material_descripcion
 FROM Maestra 
 WHERE Material_tipo IS NOT NULL
+
+-- Si la consulta devuelve filas, significa que hay detalles de pedido que estan siendo facturados mas de una vez.
+/*
+SELECT idDetallePedido, COUNT(*) AS apariciones
+FROM LOS_BASEADOS.detalle_factura
+GROUP BY idDetallePedido
+HAVING COUNT(*) > 1;
+*/
 
 -- SELECTS DE NUESTRAS TABLAS
 

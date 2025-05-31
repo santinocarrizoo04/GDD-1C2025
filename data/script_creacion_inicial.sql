@@ -44,6 +44,9 @@ CREATE TABLE LOS_BASEADOS.proveedor(
 GO
 
 CREATE TABLE LOS_BASEADOS.compra(
+    --OPCION 1
+    -- idCompra BIGINT NOT NULL IDENTITY(1,1),
+    --OPCION 2 EN CONSTRAINTS
     numeroCompra DECIMAL(18,0) NOT NULL,
     numeroSucursal BIGINT NOT NULL,
     idProveedor INT NOT NULL,
@@ -194,7 +197,6 @@ CREATE TABLE LOS_BASEADOS.detalle_factura(
     precioUnitario DECIMAL(18,2) NOT NULL,
     cantidad DECIMAL(18,0) NOT NULL,
     subtotal DECIMAL(18,2) NOT NULL
-
 );
 GO
 
@@ -337,16 +339,16 @@ GO
 
 -- CREACION DE PROCEDURES DE MIGRACION
 
-
 CREATE PROC LOS_BASEADOS.migrar_estados AS
 BEGIN
     INSERT INTO LOS_BASEADOS.estado (estado)
     SELECT DISTINCT m.Pedido_Estado 
     FROM Maestra m
     WHERE m.Pedido_Estado IS NOT NULL;
+
+    INSERT INTO LOS_BASEADOS.estado (estado) VALUES ('PENDIENTE')
 END
 GO
-
 
 CREATE PROC LOS_BASEADOS.migrar_provincias AS
 BEGIN
@@ -368,18 +370,17 @@ GO
 CREATE PROC LOS_BASEADOS.migrar_localidades AS
 BEGIN
     INSERT INTO LOS_BASEADOS.localidad (localidad, idProvincia)
-    SELECT DISTINCT m.Cliente_Localidad localidad, p.idProvincia
+    SELECT DISTINCT m.Cliente_Localidad, p.idProvincia
     FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Cliente_Provincia = p.provincia
-    WHERE m.Cliente_Localidad IS NOT NULL
+    WHERE m.Cliente_Localidad IS NOT NULL AND p.idProvincia IS NOT NULL
     UNION
     SELECT DISTINCT m.Proveedor_Localidad localidad, p.idProvincia
     FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Proveedor_provincia = p.provincia
-    WHERE m.Proveedor_Localidad IS NOT NULL
+    WHERE m.Proveedor_Localidad IS NOT NULL AND p.idProvincia IS NOT NULL
     UNION
     SELECT DISTINCT m.Sucursal_Localidad localidad, p.idProvincia
     FROM Maestra m JOIN LOS_BASEADOS.provincia p ON m.Sucursal_provincia = p.provincia
-    WHERE m.Sucursal_Localidad IS NOT NULL
-    ORDER BY localidad ASC
+    WHERE m.Sucursal_Localidad IS NOT NULL AND p.idProvincia IS NOT NULL
 END
 GO
 
@@ -395,7 +396,8 @@ BEGIN
     FROM Maestra m 
 	JOIN LOS_BASEADOS.provincia p ON m.Sucursal_Provincia = p.provincia
     JOIN LOS_BASEADOS.localidad l ON m.Sucursal_Localidad = l.localidad AND l.idProvincia = p.idProvincia
-    WHERE m.Sucursal_NroSucursal IS NOT NULL
+    WHERE m.Sucursal_NroSucursal IS NOT NULL AND l.idLocalidad IS NOT NULL 
+        AND m.Sucursal_Direccion IS NOT NULL AND m.Sucursal_telefono IS NOT NULL AND m.Sucursal_mail IS NOT NULL
 END
 GO
 
@@ -412,7 +414,8 @@ BEGIN
     FROM Maestra m 
 	JOIN LOS_BASEADOS.provincia p ON m.Proveedor_Provincia = p.provincia
     JOIN LOS_BASEADOS.localidad l ON m.Proveedor_Localidad = l.localidad AND l.idProvincia = p.idProvincia
-    WHERE m.Proveedor_Cuit IS NOT NULL
+    WHERE m.Proveedor_Cuit IS NOT NULL AND l.idLocalidad IS NOT NULL AND m.Proveedor_RazonSocial IS NOT NULL AND m.Proveedor_Direccion IS NOT NULL
+         AND m.Proveedor_Telefono IS NOT NULL AND m.Proveedor_Mail IS NOT NULL
 END
 GO
 
@@ -435,7 +438,8 @@ BEGIN
 		m.Material_Precio
     FROM Maestra m 
 	JOIN LOS_BASEADOS.tipo_material t ON m.Material_Tipo = t.tipo
-    WHERE Material_tipo IS NOT NULL
+    WHERE Material_tipo IS NOT NULL AND m.Material_Descripcion IS NOT NULL AND m.Material_Nombre IS NOT NULL AND m.Material_Precio IS NOT NULL
+         AND t.idTipoMaterial IS NOT NULL
 END
 GO
 
@@ -448,7 +452,7 @@ BEGIN
 		m.Tela_Textura
     FROM Maestra m 
 	JOIN LOS_BASEADOS.material t ON m.Material_Nombre = t.nombre AND m.Material_Descripcion = t.descripcion
-    WHERE m.Tela_Color IS NOT NULL AND m.Tela_Textura IS NOT NULL
+    WHERE m.Tela_Color IS NOT NULL AND m.Tela_Textura IS NOT NULL AND t.idMaterial IS NOT NULL
 END
 GO
 
@@ -461,7 +465,7 @@ BEGIN
 		m.Madera_Dureza
     FROM Maestra m 
 	JOIN LOS_BASEADOS.material t ON m.Material_Nombre = t.nombre AND m.Material_Descripcion = t.descripcion
-    WHERE m.Madera_Color IS NOT NULL AND m.Madera_Dureza IS NOT NULL
+    WHERE m.Madera_Color IS NOT NULL AND m.Madera_Dureza IS NOT NULL AND t.idMaterial IS NOT NULL
 END
 GO
 
@@ -473,7 +477,7 @@ BEGIN
 		m.Relleno_Densidad
     FROM Maestra m 
 	JOIN LOS_BASEADOS.material t ON m.Material_Nombre = t.nombre AND m.Material_Descripcion = t.descripcion
-    WHERE m.Relleno_Densidad IS NOT NULL
+    WHERE m.Relleno_Densidad IS NOT NULL AND t.idMaterial IS NOT NULL
 END
 GO
 
@@ -489,7 +493,8 @@ BEGIN
     FROM Maestra m 
 	JOIN LOS_BASEADOS.sucursal s ON m.Sucursal_NroSucursal = s.numeroSucursal
     JOIN LOS_BASEADOS.proveedor p ON m.Proveedor_Cuit = p.cuit AND m.Proveedor_RazonSocial = p.razonSocial
-    WHERE m.Compra_Numero IS NOT NULL
+    WHERE m.Compra_Numero IS NOT NULL AND s.numeroSucursal IS NOT NULL AND p.idProveedor IS NOT NULL 
+        AND m.Compra_Fecha IS NOT NULL AND m.Compra_Total IS NOT NULL
 END
 GO
 
@@ -505,6 +510,8 @@ BEGIN
     FROM Maestra m 
 	JOIN LOS_BASEADOS.compra c ON m.Compra_Numero = c.numeroCompra
     JOIN LOS_BASEADOS.material mat ON m.Material_Nombre = mat.nombre AND m.Material_Descripcion = mat.descripcion
+    WHERE c.numeroCompra IS NOT NULL AND mat.idMaterial IS NOT NULL AND m.Detalle_Compra_Precio IS NOT NULL 
+        AND m.Detalle_Compra_Cantidad IS NOT NULL AND m.Detalle_Compra_SubTotal IS NOT NULL
 END
 GO
 
@@ -523,7 +530,8 @@ BEGIN
 	FROM Maestra m 
 	JOIN LOS_BASEADOS.provincia p ON m.Cliente_Provincia=p.provincia
 	JOIN LOS_BASEADOS.localidad l ON m.Cliente_Localidad = l.localidad AND l.idProvincia = p.idProvincia
-	WHERE m.Cliente_DNI IS NOT NULL 
+	WHERE m.Cliente_DNI IS NOT NULL AND l.idLocalidad IS NOT NULL AND m.Cliente_Nombre IS NOT NULL AND m.Cliente_Apellido IS NOT NULL
+        AND m.Cliente_FechaNacimiento IS NOT NULL AND m.Cliente_Telefono IS NOT NULL AND m.Cliente_Mail IS NOT NULL AND m.Cliente_Direccion IS NOT NULL
 END
 GO
 
@@ -539,8 +547,7 @@ BEGIN
 	FROM Maestra m 
 	JOIN LOS_BASEADOS.sucursal s ON m.Sucursal_NroSucursal = s.numeroSucursal
 	JOIN LOS_BASEADOS.cliente c ON m.Cliente_Dni = c.dni
-	WHERE m.Factura_Numero IS NOT NULL 
-	ORDER BY m.Factura_Numero
+	WHERE m.Factura_Numero IS NOT NULL AND s.numeroSucursal IS NOT NULL AND c.idCliente IS NOT NULL AND m.Factura_Fecha IS NOT NULL AND m.Factura_Total IS NOT NULL
 END
 GO
 
@@ -557,8 +564,8 @@ BEGIN
 		m.Envio_Total
 	FROM Maestra m 
 	JOIN LOS_BASEADOS.factura f ON f.numeroFactura = m.Factura_Numero
-	WHERE m.Envio_Numero IS NOT NULL 
-	ORDER BY m.Envio_Numero
+	WHERE m.Envio_Numero IS NOT NULL AND f.idFactura IS NOT NULL AND m.Envio_Fecha_Programada IS NOT NULL AND m.Envio_Fecha IS NOT NULL
+        AND m.Envio_importeSubida IS NOT NULL AND m.Envio_ImporteTraslado IS NOT NULL AND m.Envio_Total IS NOT NULL
 END
 GO
 
@@ -572,7 +579,7 @@ BEGIN
         m.Sillon_Modelo_Descripcion, 
         m.Sillon_Modelo_Precio
     FROM Maestra m
-    WHERE m.Sillon_Modelo_Codigo IS NOT NULL
+    WHERE m.Sillon_Modelo_Codigo IS NOT NULL AND m.Sillon_Modelo IS NOT NULL AND m.Sillon_Modelo_Descripcion IS NOT NULL AND m.Sillon_Modelo_Precio IS NOT NULL
 END
 GO
 
@@ -585,7 +592,8 @@ BEGIN
         m.Sillon_Medida_Profundidad,
         m.Sillon_Medida_Precio
     FROM Maestra m
-    WHERE m.Sillon_Medida_Precio IS NOT NULL
+    WHERE m.Sillon_Medida_Precio IS NOT NULL AND m.Sillon_Medida_Alto IS NOT NULL 
+        AND m.Sillon_Medida_Ancho IS NOT NULL AND m.Sillon_Medida_Profundidad IS NOT NULL
 END
 GO
 
@@ -603,7 +611,7 @@ BEGIN
         m.Sillon_Medida_Ancho = me.ancho AND
         m.Sillon_Medida_Profundidad = me.profundidad AND
         m.Sillon_Medida_Precio = me.precio
-    WHERE m.Sillon_Codigo IS NOT NULL
+    WHERE m.Sillon_Codigo IS NOT NULL AND mo.codigoModelo IS NOT NULL AND me.idMedidas IS NOT NULL
 END
 GO
 
@@ -615,7 +623,7 @@ BEGIN
         mat.idMaterial
     FROM Maestra m
     JOIN LOS_BASEADOS.material mat ON m.Material_Nombre = mat.nombre AND m.Material_Descripcion = mat.descripcion
-    WHERE m.Sillon_Codigo IS NOT NULL
+    WHERE m.Sillon_Codigo IS NOT NULL AND mat.idMaterial IS NOT NULL
 END
 GO
 
@@ -633,7 +641,8 @@ BEGIN
     JOIN LOS_BASEADOS.sucursal s ON m.Sucursal_NroSucursal = s.numeroSucursal
     JOIN LOS_BASEADOS.cliente c ON m.Cliente_Dni = c.dni
     JOIN LOS_BASEADOS.estado e ON m.Pedido_Estado = e.estado
-    WHERE m.Pedido_Numero IS NOT NULL
+    WHERE m.Pedido_Numero IS NOT NULL AND s.numeroSucursal IS NOT NULL AND c.idCliente IS NOT NULL AND e.idEstado IS NOT NULL
+        AND m.Pedido_Fecha IS NOT NULL AND m.Pedido_Total IS NOT NULL
 END
 GO
 
@@ -645,7 +654,7 @@ BEGIN
         m.Pedido_Cancelacion_Fecha,
         m.Pedido_Cancelacion_Motivo
     FROM Maestra m
-    WHERE m.Pedido_Cancelacion_Fecha IS NOT NULL
+    WHERE m.Pedido_Cancelacion_Fecha IS NOT NULL AND m.Pedido_Numero IS NOT NULL AND m.Pedido_Cancelacion_Motivo IS NOT NULL
 END
 GO
 
@@ -661,7 +670,8 @@ BEGIN
     FROM Maestra m
     JOIN LOS_BASEADOS.sillon s ON m.Sillon_Codigo = s.codigoSillon
 	JOIN LOS_BASEADOS.pedido p ON m.Pedido_Numero = p.numeroPedido
-    WHERE m.Pedido_Numero IS NOT NULL AND m.Sillon_Codigo IS NOT NULL
+    WHERE m.Pedido_Numero IS NOT NULL AND s.codigoSillon IS NOT NULL AND m.Detalle_Pedido_Precio IS NOT NULL 
+        AND m.Detalle_Pedido_Cantidad IS NOT NULL AND m.Detalle_Pedido_SubTotal IS NOT NULL
 END
 GO
 
@@ -861,48 +871,44 @@ END
 GO 
 */
 
--- Si la consulta devuelve filas, significa que hay detalles de pedido que están siendo facturados más de una vez.
-SELECT idDetallePedido, COUNT(*) AS apariciones
-FROM LOS_BASEADOS.detalle_factura
-GROUP BY idDetallePedido
-HAVING COUNT(*) > 1;
-
 -- CREACION DE INDICES
 
--- CLIENTE por DNI
+--Ocupan espacio los indices, revisaria cuales realmente necesitamos (tal vez todos eh, no digo que no)
+
+        -- LOCALIDAD por localidad(nombre)
+--CREATE INDEX IX_localidad_nombre ON LOS_BASEADOS.localidad (localidad);
+
+-- LOCALIDAD por provincia(idProvincia)
+--CREATE INDEX IX_localidad_provincia ON LOS_BASEADOS.localidad (idProvincia); NO EXISTE YA IDX POR SER FK?
+
+        -- CLIENTE por DNI
 CREATE INDEX IX_cliente_dni ON LOS_BASEADOS.cliente (dni);
 
--- FACTURA por numeroFactura
+        -- FACTURA por numeroFactura
 CREATE INDEX IX_factura_numero ON LOS_BASEADOS.factura (numeroFactura);
 
--- PEDIDO por numeroPedido
+        -- PEDIDO por numeroPedido
 CREATE INDEX IX_pedido_numero ON LOS_BASEADOS.pedido (numeroPedido);
 
-/*
--- DETALLE_PEDIDO por ??
-CREATE INDEX IX_detallePedido_numeroPedido
-ON LOS_BASEADOS.detalle_pedido (??);
-*/
 
--- DETALLE_FACTURA por idFactura
-CREATE INDEX IX_detalleFactura_idFactura
-ON LOS_BASEADOS.detalle_factura (idFactura);
+        -- DETALLE_PEDIDO por ??
+-- CREATE INDEX IX_detallePedido_numeroPedido ON LOS_BASEADOS.detalle_pedido (??);
 
--- SILLON por codigo
-CREATE INDEX IX_sillon_codigoSillon
-ON LOS_BASEADOS.sillon (codigoSillon);
 
--- MATERIAL_X_SILLON por idMaterial (consultas de materiales)
-CREATE INDEX IX_materialXSillon_idMaterial
-ON LOS_BASEADOS.material_x_sillon (idMaterial);
+        -- DETALLE_FACTURA por idFactura
+CREATE INDEX IX_detalleFactura_idFactura ON LOS_BASEADOS.detalle_factura (idFactura);
 
--- MATERIAL_X_SILLON por codigoSillon (consultas por sillón)
-CREATE INDEX IX_materialXSillon_codigoSillon
-ON LOS_BASEADOS.material_x_sillon (codigoSillon);
+        -- SILLON por codigo
+CREATE INDEX IX_sillon_codigoSillon ON LOS_BASEADOS.sillon (codigoSillon);
 
--- DETALLE_COMPRA por numeroCompra
-CREATE INDEX IX_detalleCompra_numeroCompra
-ON LOS_BASEADOS.detalle_compra (numeroCompra);
+        -- MATERIAL_X_SILLON por idMaterial (consultas de materiales)
+CREATE INDEX IX_materialXSillon_idMaterial ON LOS_BASEADOS.material_x_sillon (idMaterial);
+
+        -- MATERIAL_X_SILLON por codigoSillon (consultas por sillon)
+CREATE INDEX IX_materialXSillon_codigoSillon ON LOS_BASEADOS.material_x_sillon (codigoSillon);
+
+        -- DETALLE_COMPRA por numeroCompra
+CREATE INDEX IX_detalleCompra_numeroCompra ON LOS_BASEADOS.detalle_compra (numeroCompra);
 
 -- EJECUCION DE PROCEDURES
 
@@ -928,4 +934,4 @@ EXEC LOS_BASEADOS.migrar_materialXSillon
 EXEC LOS_BASEADOS.migrar_pedidos
 EXEC LOS_BASEADOS.migrar_cancelaciones
 EXEC LOS_BASEADOS.migrar_detallePedido
-EXEC LOS_BASEADOS.migrar_detalleFactura
+--EXEC LOS_BASEADOS.migrar_detalleFactura

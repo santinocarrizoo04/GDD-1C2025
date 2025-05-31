@@ -1,4 +1,13 @@
--- SI QUIERO INSERTAR UN DATO QUE NO SE PUEDE, POR EJ UNA FK A UNA PK Q NO ESTA, LA PK DE ESA TABLA SE SALTEA UNO!!!
+--DROP INDEX IX_localidad_provincia_localidad ON LOS_BASEADOS.localidad;
+DROP INDEX IX_cliente_dni ON LOS_BASEADOS.cliente;
+DROP INDEX IX_factura_numero ON LOS_BASEADOS.factura;
+DROP INDEX IX_pedido_numero ON LOS_BASEADOS.pedido;
+--DROP INDEX IX_detallePedido_numeroPedido ON LOS_BASEADOS.detalle_pedido;
+DROP INDEX IX_detalleFactura_idFactura ON LOS_BASEADOS.detalle_factura;
+DROP INDEX IX_sillon_codigoSillon ON LOS_BASEADOS.sillon;
+DROP INDEX IX_materialXSillon_idMaterial ON LOS_BASEADOS.material_x_sillon;
+DROP INDEX IX_materialXSillon_codigoSillon ON LOS_BASEADOS.material_x_sillon;
+DROP INDEX IX_detalleCompra_numeroCompra ON LOS_BASEADOS.detalle_compra;
 
 DROP TABLE LOS_BASEADOS.envio
 DROP TABLE LOS_BASEADOS.detalle_factura
@@ -46,18 +55,7 @@ DROP PROCEDURE LOS_BASEADOS.migrar_materialXSillon
 DROP PROCEDURE LOS_BASEADOS.migrar_pedidos
 DROP PROCEDURE LOS_BASEADOS.migrar_cancelaciones
 DROP PROCEDURE LOS_BASEADOS.migrar_detallePedido
-DROP PROCEDURE LOS_BASEADOS.migrar_detalleFactura
-
-DROP INDEX IX_localidad_provincia_localidad ON LOS_BASEADOS.localidad;
-DROP INDEX IX_cliente_dni ON LOS_BASEADOS.cliente;
-DROP INDEX IX_factura_numeroFactura ON LOS_BASEADOS.factura;
-DROP INDEX IX_pedido_numeroPedido ON LOS_BASEADOS.pedido;
-/*DROP INDEX IX_detallePedido_numeroPedido ON LOS_BASEADOS.detalle_pedido;*/
-DROP INDEX IX_detalleFactura_idFactura ON LOS_BASEADOS.detalle_factura;
-DROP INDEX IX_sillon_codigoSillon ON LOS_BASEADOS.sillon;
-DROP INDEX IX_materialXSillon_idMaterial ON LOS_BASEADOS.material_x_sillon;
-DROP INDEX IX_materialXSillon_codigoSillon ON LOS_BASEADOS.material_x_sillon;
-DROP INDEX IX_detalleCompra_numeroCompra ON LOS_BASEADOS.detalle_compra;
+--DROP PROCEDURE LOS_BASEADOS.migrar_detalleFactura
 
 DROP SYNONYM Maestra
 DROP SCHEMA LOS_BASEADOS
