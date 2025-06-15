@@ -1,0 +1,4 @@
+USE GD1C2025
+GO
+
+DROP TABLE LOS_BASEADOS.BI_dimension_tiempo
