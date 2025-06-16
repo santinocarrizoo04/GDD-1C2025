@@ -20,14 +20,14 @@ CREATE TABLE LOS_BASEADOS.BI_dimension_ubicacion (
 );
 GO
 
-CREATE TABLE LOS_BASEADOS.BI_dimension_rango_etario_cliente(
+CREATE TABLE LOS_BASEADOS.BI_dimension_rango_etario(
 	idRangoEtario DECIMAL(18,0) NOT NULL IDENTITY(1,1),
 	rango NVARCHAR(255) NOT NULL
 );
 GO
 
 CREATE TABLE LOS_BASEADOS.BI_dimension_turno_venta(
-	idTurnoVentas DECIMAL(18,0) NOT NULL IDENTITY(1,1),
+	idTurnoVenta DECIMAL(18,0) NOT NULL IDENTITY(1,1),
 	turno NVARCHAR(255) NOT NULL
 );
 GO
@@ -87,7 +87,7 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_compra(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
-    idTipoMaterial DECIMAL(18,0) NOT NULL,
+    idBiTipoMaterial DECIMAL(18,0) NOT NULL,
     total_compras DECIMAL(12,2) NOT NULL,
     cant_compras DECIMAL(18,0) NOT NULL
 );
@@ -98,7 +98,7 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_envio(
     idUbicacion DECIMAL(18,0) NOT NULL,
     cant_envios_cumplidos DECIMAL(18,0) NOT NULL,
     cant_envios_total DECIMAL(18,0) NOT NULL,
-    total_costo DECIMAL(12,2) NOT NULL
+    total_costo_envio DECIMAL(12,2) NOT NULL
 );
 GO
 
@@ -107,70 +107,70 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_dimension_estado_pedido ADD CONSTRAINT PK_idBiEstadoPedido PRIMARY KEY(idBiEstadoPedido);
 GO
 
-
-ALTER TABLE LOS_BASEADOS.BI_dimension_turno_venta ADD CONSTRAINT PK_idTurnoVentas PRIMARY KEY(idTurnoVentas);
+ALTER TABLE LOS_BASEADOS.BI_dimension_turno_venta ADD CONSTRAINT PK_idTurnoVenta PRIMARY KEY(idTurnoVenta);
 GO
-
 
 ALTER TABLE LOS_BASEADOS.BI_dimension_tiempo ADD CONSTRAINT PK_idTiempo PRIMARY KEY(idTiempo);
 GO
-
+ALTER TABLE LOS_BASEADOS.BI_dimension_tiempo ADD CONSTRAINT UNIQUE_tiempo UNIQUE(anio,cuatrimestre,mes) 
+GO
 
 ALTER TABLE LOS_BASEADOS.BI_dimension_tipo_material ADD CONSTRAINT PK_idBiTipoMaterial PRIMARY KEY(idBiTipoMaterial);
 GO
 
-
-ALTER TABLE LOS_BASEADOS.BI_dimension_rango_etario_cliente ADD CONSTRAINT PK_idRangoEtario PRIMARY KEY(idRangoEtario);
+ALTER TABLE LOS_BASEADOS.BI_dimension_rango_etario ADD CONSTRAINT PK_idRangoEtario PRIMARY KEY(idRangoEtario);
 GO
-
 
 ALTER TABLE LOS_BASEADOS.BI_dimension_ubicacion ADD CONSTRAINT PK_idUbicacion PRIMARY KEY(idUbicacion);
 GO
 
-
 ALTER TABLE LOS_BASEADOS.BI_dimension_modelo_sillon ADD CONSTRAINT PK_idBiModeloSillon PRIMARY KEY(idBiModeloSillon);
 GO
 
-/* #######TODO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT PK_hechoFactura PRIMARY KEY(idTiempo, idUbicacion);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
-
-
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
-GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
 
-
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT PK_hechoEnvio PRIMARY KEY(idTiempo, idUbicacion);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
-GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
 
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT PK_hechoPedido PRIMARY KEY(idTiempo, idUbicacion, idTurnoVenta, idBiEstadoPedido);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idTurnoVenta FOREIGN KEY(idTurnoVenta) REFERENCES LOS_BASEADOS.BI_dimension_turno_venta(idTurnoVenta);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idBiEstadoPedido FOREIGN KEY(idBiEstadoPedido) REFERENCES LOS_BASEADOS.BI_dimension_estado_pedido(idBiEstadoPedido);
+GO
 
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT PK_hechoVenta PRIMARY KEY(idTiempo, idUbicacion, idRangoEtario, idBiModeloSillon);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idRangoEtario FOREIGN KEY(idRangoEtario) REFERENCES LOS_BASEADOS.BI_dimension_rango_etario(idRangoEtario);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idBiModeloSillon FOREIGN KEY(idBiModeloSillon) REFERENCES LOS_BASEADOS.BI_dimension_modelo_sillon(idBiModeloSillon);
 GO
 
-
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT PK_hechoCompra PRIMARY KEY(idTiempo, idUbicacion, idBiTipoMaterial);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
-ALTER TABLE LOS_BASEADOS.sucursal ADD CONSTRAINT FK_sucursal_localidad FOREIGN KEY(idLocalidad) REFERENCES LOS_BASEADOS.localidad(idLocalidad);
+ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
-*/
+ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTipoMaterial FOREIGN KEY(idBiTipoMaterial) REFERENCES LOS_BASEADOS.BI_dimension_tipo_material(idBiTipoMaterial);
+GO
 
 -- CREACION DE FUNCIONES --------------------------------------------------------------------
 

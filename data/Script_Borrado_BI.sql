@@ -1,4 +1,16 @@
 USE GD1C2025
 GO
 
+DROP TABLE LOS_BASEADOS.BI_hecho_envio
+DROP TABLE LOS_BASEADOS.BI_hecho_compra
+DROP TABLE LOS_BASEADOS.BI_hecho_venta
+DROP TABLE LOS_BASEADOS.BI_hecho_pedido
+DROP TABLE LOS_BASEADOS.BI_hecho_factura
+
+DROP TABLE LOS_BASEADOS.BI_dimension_tipo_material
 DROP TABLE LOS_BASEADOS.BI_dimension_tiempo
+DROP TABLE LOS_BASEADOS.BI_dimension_turno_venta
+DROP TABLE LOS_BASEADOS.BI_dimension_estado_pedido
+DROP TABLE LOS_BASEADOS.BI_dimension_rango_etario
+DROP TABLE LOS_BASEADOS.BI_dimension_ubicacion
+DROP TABLE LOS_BASEADOS.BI_dimension_modelo_sillon
