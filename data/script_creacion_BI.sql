@@ -173,10 +173,106 @@ ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTipoMat
 GO
 
 -- CREACION DE FUNCIONES --------------------------------------------------------------------
+CREATE FUNCTION obtener_cuatrimestre (@MES INT)
+RETURNS INT 
+BEGIN
+	DECLARE @CUATRIMESTRE INT;
+	IF @MES IN (1,2,3,4) set @CUATRIMESTRE = 1
+	ELSE IF @MES IN (5,6,7,8) set @CUATRIMESTRE = 2
+	ELSE IF @MES IN (9,10,11,12) set @CUATRIMESTRE=3
+	RETURN @CUATRIMESTRE
+END
+GO
+
+CREATE FUNCTION envio_cumplido(@FECHA_PROGRAMADA DATETIME, @FECHA_ENTREGA DATETIME)
+RETURNS INT
+BEGIN	
+	DECLARE @CONT INT;
+	SET @CONT = 0;
+		IF(YEAR(@FECHA_PROGRAMADA) = YEAR(@FECHA_ENTREGA) AND MONTH(@FECHA_PROGRAMADA) = MONTH(@FECHA_ENTREGA) AND DAY(@FECHA_PROGRAMADA) = DAY(@FECHA_ENTREGA)) SET @CONT = 1;
+	RETURN @CONT;
+END
+GO
+
+CREATE FUNCTION comparar_fecha(@ANIO INT,@MES INT,@CUATRI INT,@FECHA INT)
+RETURNS INT
+AS
+BEGIN 
+	RETURN CASE 
+	WHEN YEAR(@fecha) = @anio 
+        AND dbo.obtener_cuatrimestre(MONTH(@fecha)) = @cuatri
+        AND MONTH(@fecha) = @mes
+        THEN 1
+        ELSE 0
+	END
+END
+GO
 
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A DIMENSIONES --------------------------------------------------------------------
 
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A HECHOS --------------------------------------------------------------------
+
+-- Migrar compras
+CREATE PROCEDURE LOS_BASEADOS.bi_migrar_compras
+AS
+BEGIN
+    insert LOS_BASEADOS.bi_hecho_compra(idTiempo,idUbicacion,idBiTipoMaterial,total_compras,cant_compras)
+
+    select tiempo.idTiempo, ubi.idUbicacion, tipo_mat.idBiTipoMaterial, count (distinct compra.numeroCompra) as cant_compras,sum(compra.total) as total_compras
+
+    from LOS_BASEADOS.compra compra
+        JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=SUCURSAL.numeroSucursal
+		JOIN LOS_BASEADOS.localidad localidad on sucursal.idLocalidad= localidad.idLocalidad
+		JOIN LOS_BASEADOS.detalle_compra ON compra.numeroCompra=detalle_compra.numeroCompra
+		JOIN LOS_BASEADOS.material material on material.idMaterial=detalle_compra.idMaterial
+		JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo on  dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
+		JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+		JOIN LOS_BASEADOS.BI_dimension_tipo_material tipo_mat on tipo_mat.idTipoMaterial=material.idTipoMaterial
+
+    GROUP BY idTiempo, idUbicacion, idBiTipoMaterial
+END
+GO
+--Migrar envios
+CREATE PROCEDURE LOS_BASEADOS.bi_migrar_envios
+AS
+BEGIN
+	insert LOS_BASEADOS.BI_hecho_envio(idTiempo,idUbicacion,cant_envios_cumplidos,cant_envios_total,total_costo_envio)
+	select tiempo.idTiempo,ubi.idUbicacion,count(dbo.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)),count(*) as total, sum(envio.total)
+	from LOS_BASEADOS.envio envio
+	JOIN LOS_BASEADOS.factura factura on envio.idFactura = factura.idFactura
+	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
+	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
+	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,envio.fechaEntrega)=1
+	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+END
+GO
+--migrar factura
+CREATE PROCEDURE LOS_BASEADOS.bi_migrar_factura
+AS
+BEGIN
+	insert LOS_BASEADOS.BI_hecho_factura(idTiempo,idUbicacion,total_facturas,cant_facturas)
+	select tiempo.idTiempo,ubi.idUbicacion,sum(factura.total) as total_facturas, count(*) as cant_facturas
+	from LOS_BASEADOS.factura factura 
+	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
+	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
+	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+END
+GO
+--migrar ventas
+/*CREATE PROCEDURE LOS_BASEADOS.bi_migrar_venta
+AS
+BEGIN
+	insert LOS_BASEADOS.BI_hecho_venta(idTiempo,idUbicacion,idRangoEtario,idBiModeloSillon,total_ventas,cant_ventas)
+	select tiempo.idTiempo,ubi.idUbicacion,
+	from LOS_BASEADOS.?
+	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
+	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
+	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+END
+GO
+*/
 
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
