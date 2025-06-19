@@ -184,7 +184,7 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION envio_cumplido(@FECHA_PROGRAMADA DATETIME, @FECHA_ENTREGA DATETIME)
+CREATE FUNCTION envio_cumplido(@FECHA_PROGRAMADA DATETIME, @FECHA_ENTREGA DATETIME2)
 RETURNS INT
 BEGIN	
 	DECLARE @CONT INT;
@@ -194,24 +194,51 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION comparar_fecha(@ANIO INT,@MES INT,@CUATRI INT,@FECHA INT)
+CREATE FUNCTION comparar_fecha(@ANIO INT,@MES INT,@CUATRI INT,@FECHA DATETIME2)
 RETURNS INT
 AS
 BEGIN 
 	RETURN CASE 
-	WHEN YEAR(@fecha) = @anio 
-        AND dbo.obtener_cuatrimestre(MONTH(@fecha)) = @cuatri
-        AND MONTH(@fecha) = @mes
+	WHEN YEAR(@FECHA) = @ANIO 
+        AND dbo.obtener_cuatrimestre(MONTH(@FECHA)) = @CUATRI
+        AND MONTH(@FECHA) = @MES
         THEN 1
         ELSE 0
 	END
 END
 GO
 
+CREATE FUNCTION obtener_turno_venta (@HORA INT)
+RETURNS NVARCHAR(255)
+AS
+BEGIN
+    DECLARE @turno NVARCHAR(255)
+
+    IF @HORA BETWEEN 8 AND 13
+        SET @turno = 'Mañana'
+    ELSE IF @HORA BETWEEN 14 AND 20
+        SET @turno = 'Tarde'
+    ELSE
+        SET @turno = 'Fuera de horario'
+
+    RETURN @turno
+END
+GO
+
+CREATE FUNCTION comparar_turno(@TURNO VARCHAR(255),@FECHA DATETIME2)
+RETURNS INT
+AS
+BEGIN
+	RETURN CASE 
+	WHEN dbo.obtener_turno_Venta(DATEPART(HOUR, @FECHA)) = @TURNO 
+        THEN 1
+        ELSE 0
+	END
+END
+GO
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A DIMENSIONES --------------------------------------------------------------------
 
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A HECHOS --------------------------------------------------------------------
-
 -- Migrar compras
 CREATE PROCEDURE LOS_BASEADOS.bi_migrar_compras
 AS
@@ -219,11 +246,10 @@ BEGIN
     insert LOS_BASEADOS.bi_hecho_compra(idTiempo,idUbicacion,idBiTipoMaterial,total_compras,cant_compras)
 
     select tiempo.idTiempo, ubi.idUbicacion, tipo_mat.idBiTipoMaterial, count (distinct compra.numeroCompra) as cant_compras,sum(compra.total) as total_compras
-
     from LOS_BASEADOS.compra compra
         JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=SUCURSAL.numeroSucursal
 		JOIN LOS_BASEADOS.localidad localidad on sucursal.idLocalidad= localidad.idLocalidad
-		JOIN LOS_BASEADOS.detalle_compra ON compra.numeroCompra=detalle_compra.numeroCompra
+		JOIN LOS_BASEADOS.detalle_compra ON compra.numeroCompra=detalle_compra.numeroCompra --VER ESTOO
 		JOIN LOS_BASEADOS.material material on material.idMaterial=detalle_compra.idMaterial
 		JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo on  dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
 		JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
@@ -259,6 +285,30 @@ BEGIN
 	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
+--migrar pedido
+CREATE PROCEDURE LOS_BASEADOS.bi_migrar_pedido
+AS
+BEGIN
+    insert LOS_BASEADOS.bi_hecho_pedido(idTiempo,idTurnoVenta,idUbicacion,idBiEstadoPedido,cant_pedidos)
+
+    select tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
+    FROM LOS_BASEADOS.pedido
+	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
+	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal --VER ESTOO
+	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad = localidad.idLocalidad
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,pedido.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON dbo.comparar_turno(turn.turno,pedido.fecha) = 1 
+	JOIN LOS_BASEADOS.BI_dimension_estado_pedido est_ped ON est_ped.idEstado = pedido.idEstado
+    
+	GROUP BY tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido
+END
+GO
+--JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(CAST(tiempo.anio AS INT),
+--																	   CAST(tiempo.mes AS INT),
+--																	   CAST(tiempo.cuatrimestre AS INT),pedido.fecha)=1
+
+
 --migrar ventas
 /*CREATE PROCEDURE LOS_BASEADOS.bi_migrar_venta
 AS
