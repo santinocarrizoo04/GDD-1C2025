@@ -310,18 +310,17 @@ END
 GO
 
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A HECHOS --------------------------------------------------------------------
--- Migrar compras
 
-CREATE PROCEDURE LOS_BASEADOS.bi_migrar_compras
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_compras
 AS
 BEGIN
-    insert LOS_BASEADOS.bi_hecho_compra(idTiempo,idUbicacion,idBiTipoMaterial,total_compras,cant_compras)
+    INSERT LOS_BASEADOS.BI_hecho_compra(idTiempo,idUbicacion,idBiTipoMaterial,total_compras,cant_compras)
 
-    select tiempo.idTiempo, ubi.idUbicacion, tipo_mat.idBiTipoMaterial, count (distinct compra.numeroCompra) as cant_compras,sum(compra.total) as total_compras
-    from LOS_BASEADOS.compra compra
+    SELECT tiempo.idTiempo, ubi.idUbicacion, tipo_mat.idBiTipoMaterial, count (distinct compra.numeroCompra) as cant_compras,sum(compra.total) as total_compras
+    FROM LOS_BASEADOS.compra compra
         JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=SUCURSAL.numeroSucursal
 		JOIN LOS_BASEADOS.localidad localidad on sucursal.idLocalidad= localidad.idLocalidad
-		JOIN LOS_BASEADOS.detalle_compra ON compra.numeroCompra=detalle_compra.numeroCompra --VER ESTOO
+		JOIN LOS_BASEADOS.detalle_compra ON compra.numeroCompra=detalle_compra.idCompra --VER ESTOO
 		JOIN LOS_BASEADOS.material material on material.idMaterial=detalle_compra.idMaterial
 		JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo on  LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
 		JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
@@ -330,40 +329,40 @@ BEGIN
     GROUP BY idTiempo, idUbicacion, idBiTipoMaterial
 END
 GO
---Migrar envios
-CREATE PROCEDURE LOS_BASEADOS.bi_migrar_envios
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_envios
 AS
 BEGIN
-	insert LOS_BASEADOS.BI_hecho_envio(idTiempo,idUbicacion,cant_envios_cumplidos,cant_envios_total,total_costo_envio)
-	select tiempo.idTiempo,ubi.idUbicacion,count(LOS_BASEADOS.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)),count(*) as total, sum(envio.total)
-	from LOS_BASEADOS.envio envio
+	INSERT LOS_BASEADOS.BI_hecho_envio(idTiempo,idUbicacion,cant_envios_cumplidos,cant_envios_total,total_costo_envio)
+	SELECT tiempo.idTiempo,ubi.idUbicacion,count(LOS_BASEADOS.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)),count(*) as total, sum(envio.total)
+	FROM LOS_BASEADOS.envio envio
 	JOIN LOS_BASEADOS.factura factura on envio.idFactura = factura.idFactura
 	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
 	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,envio.fechaEntrega)=1
-	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,envio.fechaEntrega)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
---migrar factura
-CREATE PROCEDURE LOS_BASEADOS.bi_migrar_factura
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_factura
 AS
 BEGIN
-	insert LOS_BASEADOS.BI_hecho_factura(idTiempo,idUbicacion,total_facturas,cant_facturas)
-	select tiempo.idTiempo,ubi.idUbicacion,sum(factura.total) as total_facturas, count(*) as cant_facturas
-	from LOS_BASEADOS.factura factura 
+	INSERT LOS_BASEADOS.BI_hecho_factura(idTiempo,idUbicacion,total_facturas,cant_facturas)
+	SELECT tiempo.idTiempo,ubi.idUbicacion,sum(factura.total) as total_facturas, count(*) as cant_facturas
+	FROM LOS_BASEADOS.factura factura 
 	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
 	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
-	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
---migrar pedido
-CREATE PROCEDURE LOS_BASEADOS.bi_migrar_pedido
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_pedido
 AS
 BEGIN
-    insert LOS_BASEADOS.bi_hecho_pedido(idTiempo,idTurnoVenta,idUbicacion,idBiEstadoPedido,cant_pedidos)
+    INSERT LOS_BASEADOS.BI_hecho_pedido(idTiempo,idTurnoVenta,idUbicacion,idBiEstadoPedido,cant_pedidos)
 
-    select tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
+    SELECT tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
     FROM LOS_BASEADOS.pedido
 	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
 	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal --VER ESTOO
@@ -380,18 +379,17 @@ GO
 --																	   CAST(tiempo.mes AS INT),
 --																	   CAST(tiempo.cuatrimestre AS INT),pedido.fecha)=1
 
-
---migrar ventas
-/*CREATE PROCEDURE LOS_BASEADOS.bi_migrar_venta
+/*
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_venta
 AS
 BEGIN
-	insert LOS_BASEADOS.BI_hecho_venta(idTiempo,idUbicacion,idRangoEtario,idBiModeloSillon,total_ventas,cant_ventas)
-	select tiempo.idTiempo,ubi.idUbicacion,
-	from LOS_BASEADOS.?
+	INSERT LOS_BASEADOS.BI_hecho_venta(idTiempo,idUbicacion,idRangoEtario,idBiModeloSillon,total_ventas,cant_ventas)
+	SELECT tiempo.idTiempo,ubi.idUbicacion,
+	FROM LOS_BASEADOS.?
 	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
 	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
-	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
 */
@@ -431,3 +429,5 @@ GO
 */
 
 -- EJECUCION DE PROCEDURES --------------------------------------------------------------------
+
+
