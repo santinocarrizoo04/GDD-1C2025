@@ -173,7 +173,7 @@ ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTipoMat
 GO
 
 -- CREACION DE FUNCIONES --------------------------------------------------------------------
-CREATE FUNCTION obtener_cuatrimestre (@MES INT)
+CREATE FUNCTION LOS_BASEADOS.obtener_cuatrimestre (@MES INT)
 RETURNS INT 
 BEGIN
 	DECLARE @CUATRIMESTRE INT;
@@ -184,7 +184,7 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION envio_cumplido(@FECHA_PROGRAMADA DATETIME, @FECHA_ENTREGA DATETIME2)
+CREATE FUNCTION LOS_BASEADOS.envio_cumplido(@FECHA_PROGRAMADA DATETIME, @FECHA_ENTREGA DATETIME2)
 RETURNS INT
 BEGIN	
 	DECLARE @CONT INT;
@@ -194,13 +194,13 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION comparar_fecha(@ANIO INT,@MES INT,@CUATRI INT,@FECHA DATETIME2)
+CREATE FUNCTION LOS_BASEADOS.comparar_fecha(@ANIO INT,@MES INT,@CUATRI INT,@FECHA DATETIME2)
 RETURNS INT
 AS
 BEGIN 
 	RETURN CASE 
 	WHEN YEAR(@FECHA) = @ANIO 
-        AND dbo.obtener_cuatrimestre(MONTH(@FECHA)) = @CUATRI
+        AND LOS_BASEADOS.obtener_cuatrimestre(MONTH(@FECHA)) = @CUATRI
         AND MONTH(@FECHA) = @MES
         THEN 1
         ELSE 0
@@ -208,14 +208,14 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION obtener_turno_venta (@HORA INT)
+CREATE FUNCTION LOS_BASEADOS.obtener_turno_venta (@HORA INT)
 RETURNS NVARCHAR(255)
 AS
 BEGIN
     DECLARE @turno NVARCHAR(255)
 
     IF @HORA BETWEEN 8 AND 13
-        SET @turno = 'Mañana'
+        SET @turno = 'Maniana'
     ELSE IF @HORA BETWEEN 14 AND 20
         SET @turno = 'Tarde'
     ELSE
@@ -225,12 +225,12 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION comparar_turno(@TURNO VARCHAR(255),@FECHA DATETIME2)
+CREATE FUNCTION LOS_BASEADOS.comparar_turno(@TURNO VARCHAR(255),@FECHA DATETIME2)
 RETURNS INT
 AS
 BEGIN
 	RETURN CASE 
-	WHEN dbo.obtener_turno_Venta(DATEPART(HOUR, @FECHA)) = @TURNO 
+	WHEN LOS_BASEADOS.obtener_turno_Venta(DATEPART(HOUR, @FECHA)) = @TURNO 
         THEN 1
         ELSE 0
 	END
@@ -238,8 +238,80 @@ END
 GO
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A DIMENSIONES --------------------------------------------------------------------
 
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_ubicaciones
+AS
+BEGIN
+	INSERT LOS_BASEADOS.BI_dimension_ubicacion(idProvincia, provincia, idLocalidad, localidad)
+	SELECT p.idProvincia, p.provincia, l.idLocalidad, l.localidad 
+	FROM LOS_BASEADOS.provincia p 
+	JOIN LOS_BASEADOS.localidad l ON l.idProvincia = p.idProvincia 
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_rango_etario
+AS
+BEGIN
+	INSERT INTO LOS_BASEADOS.BI_dimension_rango_etario(rango)
+    VALUES ('<25'),('25-35'), ('35-50'),('>50')
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tipo_material
+AS
+BEGIN
+	INSERT INTO LOS_BASEADOS.BI_dimension_tipo_material(idTipoMaterial, tipo)
+    SELECT idTipoMaterial, tipo
+	FROM LOS_BASEADOS.tipo_material
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_estado_pedido
+AS
+BEGIN
+	insert into LOS_BASEADOS.BI_dimension_estado_pedido(idEstado, estado)
+    SELECT idEstado, estado
+	FROM LOS_BASEADOS.estado
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
+AS
+BEGIN
+	INSERT INTO LOS_BASEADOS.BI_dimension_turno_venta(turno)
+    VALUES ('08:00 - 14:00'),('14:00 - 20:00')
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_modelo_sillon
+AS
+BEGIN
+	INSERT INTO LOS_BASEADOS.BI_dimension_modelo_sillon(codigoModelo, descripcion, modelo, precio)
+    SELECT codigoModelo, descripcion, modelo, precio
+	FROM LOS_BASEADOS.modelo_sillon
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tiempo
+AS
+BEGIN
+	INSERT INTO LOS_BASEADOS.BI_dimension_tiempo(anio, cuatrimestre, mes)
+    SELECT DISTINCT YEAR(e.fechaEntrega), LOS_BASEADOS.obtener_cuatrimestre(MONTH(e.fechaEntrega)), MONTH(e.fechaEntrega)
+	FROM LOS_BASEADOS.envio e
+	UNION
+    SELECT DISTINCT YEAR(c.fecha), LOS_BASEADOS.obtener_cuatrimestre(MONTH(c.fecha)),MONTH(c.fecha)
+	FROM LOS_BASEADOS.compra c
+	UNION
+    SELECT DISTINCT YEAR(p.fecha), LOS_BASEADOS.obtener_cuatrimestre(MONTH(p.fecha)), MONTH(p.fecha)
+	FROM LOS_BASEADOS.pedido p
+	UNION
+    SELECT DISTINCT YEAR(f.fecha), LOS_BASEADOS.obtener_cuatrimestre(MONTH(f.fecha)),MONTH(f.fecha)
+	FROM LOS_BASEADOS.factura f
+END
+GO
+
 -- CREACION DE PROCEDURES PARA MIGRAR DATOS A HECHOS --------------------------------------------------------------------
 -- Migrar compras
+
 CREATE PROCEDURE LOS_BASEADOS.bi_migrar_compras
 AS
 BEGIN
@@ -251,7 +323,7 @@ BEGIN
 		JOIN LOS_BASEADOS.localidad localidad on sucursal.idLocalidad= localidad.idLocalidad
 		JOIN LOS_BASEADOS.detalle_compra ON compra.numeroCompra=detalle_compra.numeroCompra --VER ESTOO
 		JOIN LOS_BASEADOS.material material on material.idMaterial=detalle_compra.idMaterial
-		JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo on  dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
+		JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo on  LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
 		JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 		JOIN LOS_BASEADOS.BI_dimension_tipo_material tipo_mat on tipo_mat.idTipoMaterial=material.idTipoMaterial
 
@@ -263,12 +335,12 @@ CREATE PROCEDURE LOS_BASEADOS.bi_migrar_envios
 AS
 BEGIN
 	insert LOS_BASEADOS.BI_hecho_envio(idTiempo,idUbicacion,cant_envios_cumplidos,cant_envios_total,total_costo_envio)
-	select tiempo.idTiempo,ubi.idUbicacion,count(dbo.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)),count(*) as total, sum(envio.total)
+	select tiempo.idTiempo,ubi.idUbicacion,count(LOS_BASEADOS.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)),count(*) as total, sum(envio.total)
 	from LOS_BASEADOS.envio envio
 	JOIN LOS_BASEADOS.factura factura on envio.idFactura = factura.idFactura
 	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
 	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,envio.fechaEntrega)=1
+	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,envio.fechaEntrega)=1
 	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
@@ -281,7 +353,7 @@ BEGIN
 	from LOS_BASEADOS.factura factura 
 	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
 	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
 	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
@@ -296,9 +368,9 @@ BEGIN
 	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
 	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal --VER ESTOO
 	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad = localidad.idLocalidad
-	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,pedido.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,pedido.fecha)=1
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
-	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON dbo.comparar_turno(turn.turno,pedido.fecha) = 1 
+	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON LOS_BASEADOS.comparar_turno(turn.turno,pedido.fecha) = 1 
 	JOIN LOS_BASEADOS.BI_dimension_estado_pedido est_ped ON est_ped.idEstado = pedido.idEstado
     
 	GROUP BY tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido
@@ -318,7 +390,7 @@ BEGIN
 	from LOS_BASEADOS.?
 	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
 	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	join LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
 	join LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 END
 GO
