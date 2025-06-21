@@ -20,6 +20,13 @@ CREATE TABLE LOS_BASEADOS.BI_dimension_ubicacion (
 );
 GO
 
+CREATE TABLE LOS_BASEADOS.BI_dimension_sucursal (
+	idSucursal DECIMAL(18,0) NOT NULL IDENTITY(1,1),
+	numeroSucursal BIGINT NOT NULL,
+	direccion NVARCHAR(255) NOT NULL
+);
+GO
+
 CREATE TABLE LOS_BASEADOS.BI_dimension_rango_etario(
 	idRangoEtario DECIMAL(18,0) NOT NULL IDENTITY(1,1),
 	rango NVARCHAR(255) NOT NULL
@@ -60,6 +67,7 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_factura(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
+	idSucursal DECIMAL(18,0),
 	total_facturas DECIMAL(12,2) NOT NULL,
     cant_facturas DECIMAL(18,0) NOT NULL
 );
@@ -69,6 +77,7 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_pedido(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idTurnoVenta DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
+	idSucursal DECIMAL(18,0),
     idBiEstadoPedido DECIMAL(18,0) NOT NULL,
     cant_pedidos DECIMAL(18,0) NOT NULL
 );
@@ -78,6 +87,7 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_venta(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idRangoEtario DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
+	idSucursal DECIMAL(18,0),
     idBiModeloSillon DECIMAL(18,0) NOT NULL,
     total_ventas DECIMAL(12,2) NOT NULL,
     cant_ventas DECIMAL(18,0) NOT NULL
@@ -87,6 +97,7 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_compra(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
+	idSucursal DECIMAL(18,0),
     idBiTipoMaterial DECIMAL(18,0) NOT NULL,
     total_compras DECIMAL(12,2) NOT NULL,
     cant_compras DECIMAL(18,0) NOT NULL
@@ -96,6 +107,7 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_envio(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
+	idSucursal DECIMAL(18,0),
     cant_envios_cumplidos DECIMAL(18,0) NOT NULL,
     cant_envios_total DECIMAL(18,0) NOT NULL,
     total_costo_envio DECIMAL(12,2) NOT NULL
@@ -124,6 +136,9 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_dimension_ubicacion ADD CONSTRAINT PK_idUbicacion PRIMARY KEY(idUbicacion);
 GO
 
+ALTER TABLE LOS_BASEADOS.BI_dimension_sucursal ADD CONSTRAINT PK_idSucursal PRIMARY KEY(idSucursal);
+GO
+
 ALTER TABLE LOS_BASEADOS.BI_dimension_modelo_sillon ADD CONSTRAINT PK_idBiModeloSillon PRIMARY KEY(idBiModeloSillon);
 GO
 
@@ -133,6 +148,8 @@ ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idTiemp
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
+GO
 
 ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT PK_hechoEnvio PRIMARY KEY(idTiempo, idUbicacion);
 GO
@@ -140,12 +157,16 @@ ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idTiempo FO
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
+GO
 
 ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT PK_hechoPedido PRIMARY KEY(idTiempo, idUbicacion, idTurnoVenta, idBiEstadoPedido);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idTurnoVenta FOREIGN KEY(idTurnoVenta) REFERENCES LOS_BASEADOS.BI_dimension_turno_venta(idTurnoVenta);
 GO
@@ -158,6 +179,8 @@ ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idTiempo FO
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
+GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idRangoEtario FOREIGN KEY(idRangoEtario) REFERENCES LOS_BASEADOS.BI_dimension_rango_etario(idRangoEtario);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idBiModeloSillon FOREIGN KEY(idBiModeloSillon) REFERENCES LOS_BASEADOS.BI_dimension_modelo_sillon(idBiModeloSillon);
@@ -168,6 +191,8 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTipoMaterial FOREIGN KEY(idBiTipoMaterial) REFERENCES LOS_BASEADOS.BI_dimension_tipo_material(idBiTipoMaterial);
 GO
@@ -244,9 +269,18 @@ CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_ubicaciones
 AS
 BEGIN
 	INSERT LOS_BASEADOS.BI_dimension_ubicacion(idProvincia, provincia, idLocalidad, localidad)
-	SELECT p.idProvincia, p.provincia, l.idLocalidad, l.localidad 
+	SELECT p.idProvincia, p.provincia, l.idLocalidad, l.localidad
 	FROM LOS_BASEADOS.provincia p 
-	JOIN LOS_BASEADOS.localidad l ON l.idProvincia = p.idProvincia 
+	JOIN LOS_BASEADOS.localidad l ON l.idProvincia = p.idProvincia
+END
+GO
+
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_sucursal
+AS
+BEGIN
+	INSERT LOS_BASEADOS.BI_dimension_sucursal(numeroSucursal, direccion)
+	SELECT s.numeroSucursal, s.direccion
+	FROM LOS_BASEADOS.sucursal s
 END
 GO
 
@@ -316,49 +350,56 @@ GO
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 AS
 BEGIN
-    INSERT LOS_BASEADOS.BI_hecho_compra(idTiempo,idUbicacion,idBiTipoMaterial,total_compras,cant_compras)
-    SELECT tiempo.idTiempo, ubi.idUbicacion, tipo_mat.idBiTipoMaterial, count (distinct compra.numeroCompra) as cant_compras,sum(compra.total) as total_compras
+    INSERT LOS_BASEADOS.BI_hecho_compra(idTiempo, idUbicacion, idSucursal, idBiTipoMaterial, cant_compras, total_compras)
+	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial, count (distinct compra.numeroCompra), sum(detalle_compra.subtotal)
     FROM LOS_BASEADOS.compra compra
-        JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=SUCURSAL.numeroSucursal
-		JOIN LOS_BASEADOS.localidad localidad on sucursal.idLocalidad= localidad.idLocalidad
-		JOIN LOS_BASEADOS.detalle_compra ON compra.idCompra=detalle_compra.idCompra
-		JOIN LOS_BASEADOS.material material on material.idMaterial=detalle_compra.idMaterial
-		JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo on  LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
-		JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
-		JOIN LOS_BASEADOS.BI_dimension_tipo_material tipo_mat on tipo_mat.idTipoMaterial=material.idTipoMaterial
-    GROUP BY idTiempo, idUbicacion, idBiTipoMaterial
+    JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=sucursal.numeroSucursal
+	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad= localidad.idLocalidad
+	JOIN LOS_BASEADOS.detalle_compra ON compra.idCompra=detalle_compra.idCompra
+	JOIN LOS_BASEADOS.material material ON material.idMaterial=detalle_compra.idMaterial
+	JOIN LOS_BASEADOS.tipo_material tipo_mat ON material.idTipoMaterial = tipo_mat.idTipoMaterial
+
+	JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON dtm.tipo = tipo_mat.tipo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = sucursal.numeroSucursal
+    GROUP BY tiempo.idTiempo, ds.idSucursal, dtm.idBiTipoMaterial, ubi.idUbicacion
 END
 GO
 
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio
 AS
 BEGIN
-	INSERT LOS_BASEADOS.BI_hecho_envio(idTiempo, idUbicacion,cant_envios_cumplidos,cant_envios_total,total_costo_envio)
-	SELECT tiempo.idTiempo, ubi.idUbicacion, count(LOS_BASEADOS.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)), count(*) as total, sum(envio.total)
+	INSERT LOS_BASEADOS.BI_hecho_envio(idTiempo, idUbicacion, idSucursal, cant_envios_cumplidos, cant_envios_total, total_costo_envio)
+	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, count(LOS_BASEADOS.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)), count(*), sum(envio.total)
 	FROM LOS_BASEADOS.envio envio
-	JOIN LOS_BASEADOS.factura factura on envio.idFactura = factura.idFactura
-	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
-	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
+	JOIN LOS_BASEADOS.factura factura ON envio.idFactura = factura.idFactura
+	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal= factura.numeroSucursal
+	JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=sucursal.idLocalidad
+
 	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,envio.fechaEntrega)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
-	GROUP BY tiempo.idTiempo, ubi.idUbicacion
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = sucursal.numeroSucursal
+	GROUP BY tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal
 END
 GO
 
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_factura
 AS
 BEGIN
-	INSERT LOS_BASEADOS.BI_hecho_factura(idTiempo,idUbicacion,total_facturas,cant_facturas)
-	SELECT tiempo.idTiempo,ubi.idUbicacion,sum(factura.total) as total_facturas, count(*) as cant_facturas
+	INSERT LOS_BASEADOS.BI_hecho_factura(idTiempo,idUbicacion,idSucursal, total_facturas,cant_facturas)
+	SELECT tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, sum(factura.total), count(*)
 	FROM LOS_BASEADOS.factura factura 
-	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
-	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
+	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal= factura.numeroSucursal
+	JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=sucursal.idLocalidad
 	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
-	GROUP BY tiempo.idTiempo, ubi.idUbicacion
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON sucursal.numeroSucursal = ds.numeroSucursal
+	GROUP BY tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal
 END
 GO
 
+/*
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 AS
 BEGIN
@@ -366,7 +407,7 @@ BEGIN
     SELECT tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
     FROM LOS_BASEADOS.pedido
 	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
-	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal --VER ESTOO
+	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal
 	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad = localidad.idLocalidad
 	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,pedido.fecha)=1
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
@@ -380,7 +421,7 @@ GO
 --																	   CAST(tiempo.mes AS INT),
 --																	   CAST(tiempo.cuatrimestre AS INT),pedido.fecha)=1
 
-/*
+
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 AS
 BEGIN
@@ -397,10 +438,22 @@ GO
 
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
-/*
 CREATE VIEW LOS_BASEADOS.gananciasView AS
+	SELECT dt.mes, dt.anio, ds.numeroSucursal, ds.direccion,
+		( SELECT hf1.total_facturas - SUM(hc1.total_compras)
+			FROM LOS_BASEADOS.BI_hecho_factura hf1
+			JOIN LOS_BASEADOS.BI_hecho_compra hc1 ON hc1.idTiempo = hf1.idTiempo AND hc1.idSucursal = hf1.idSucursal
+			WHERE hf1.idSucursal = hf.idSucursal AND hf1.idTiempo = hf.idTiempo
+			GROUP BY hf1.total_facturas
+		) AS Ganancia
+	FROM LOS_BASEADOS.BI_hecho_factura hf
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hf.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_hecho_compra hc ON hc.idTiempo = hf.idTiempo AND hc.idSucursal = hf.idSucursal
+	GROUP BY dt.mes, dt.anio, ds.numeroSucursal, ds.direccion, hf.idSucursal, hf.idTiempo;
 GO
 
+/*
 CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 GO
 
@@ -437,13 +490,13 @@ EXEC LOS_BASEADOS.BI_migrar_dimension_rango_etario
 EXEC LOS_BASEADOS.BI_migrar_dimension_tiempo
 EXEC LOS_BASEADOS.BI_migrar_dimension_tipo_material
 EXEC LOS_BASEADOS.BI_migrar_dimension_turno_venta
+EXEC LOS_BASEADOS.BI_migrar_dimension_sucursal
 EXEC LOS_BASEADOS.BI_migrar_dimension_ubicaciones
 
 EXEC LOS_BASEADOS.BI_migrar_hecho_compra
 EXEC LOS_BASEADOS.BI_migrar_hecho_envio
 EXEC LOS_BASEADOS.BI_migrar_hecho_factura
+/*
 EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
---EXEC LOS_BASEADOS.BI_migrar_hecho_venta
-
-
-
+EXEC LOS_BASEADOS.BI_migrar_hecho_venta
+*/

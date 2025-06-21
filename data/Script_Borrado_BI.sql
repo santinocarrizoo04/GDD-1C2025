@@ -1,7 +1,10 @@
 USE GD1C2025
 GO
 
+DROP VIEW LOS_BASEADOS.gananciasView
+
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_ubicaciones
+DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_sucursal
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_rango_etario
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tipo_material
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_estado_pedido
@@ -10,7 +13,7 @@ DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_modelo_sillon
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tiempo
 
 --DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
-DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
+--DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_factura
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
@@ -33,5 +36,6 @@ DROP TABLE LOS_BASEADOS.BI_dimension_tiempo
 DROP TABLE LOS_BASEADOS.BI_dimension_turno_venta
 DROP TABLE LOS_BASEADOS.BI_dimension_estado_pedido
 DROP TABLE LOS_BASEADOS.BI_dimension_rango_etario
+DROP TABLE LOS_BASEADOS.BI_dimension_sucursal
 DROP TABLE LOS_BASEADOS.BI_dimension_ubicacion
 DROP TABLE LOS_BASEADOS.BI_dimension_modelo_sillon
