@@ -241,9 +241,9 @@ BEGIN
     DECLARE @turno NVARCHAR(255)
 
     IF @HORA BETWEEN 8 AND 13
-        SET @turno = 'Maniana'
+        SET @turno = '08:00 - 13:00'
     ELSE IF @HORA BETWEEN 14 AND 20
-        SET @turno = 'Tarde'
+        SET @turno = '14:00 - 20:00'
     ELSE
         SET @turno = 'Fuera de horario'
 
@@ -314,7 +314,7 @@ CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
 AS
 BEGIN
 	INSERT INTO LOS_BASEADOS.BI_dimension_turno_venta(turno)
-    VALUES ('08:00 - 14:00'),('14:00 - 20:00')
+    VALUES ('08:00 - 13:00'),('14:00 - 20:00')
 END
 GO
 
@@ -399,18 +399,18 @@ BEGIN
 END
 GO
 
-/*
+
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 AS
 BEGIN
     INSERT LOS_BASEADOS.BI_hecho_pedido(idTiempo,idTurnoVenta,idUbicacion,idBiEstadoPedido,cant_pedidos)
-    SELECT tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
+    SELECT tiempo.idTiempo ,ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido) AS [Cantidad Pedidos]
     FROM LOS_BASEADOS.pedido
 	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
 	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal
-	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad = localidad.idLocalidad
+	JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=sucursal.idLocalidad
 	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,pedido.fecha)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON localidad.idLocalidad = ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON LOS_BASEADOS.comparar_turno(turn.turno,pedido.fecha) = 1 
 	JOIN LOS_BASEADOS.BI_dimension_estado_pedido est_ped ON est_ped.idEstado = pedido.idEstado
 	GROUP BY tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido
@@ -421,7 +421,7 @@ GO
 --																	   CAST(tiempo.mes AS INT),
 --																	   CAST(tiempo.cuatrimestre AS INT),pedido.fecha)=1
 
-
+/*
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 AS
 BEGIN
