@@ -403,8 +403,8 @@ GO
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 AS
 BEGIN
-    INSERT LOS_BASEADOS.BI_hecho_pedido(idTiempo,idTurnoVenta,idUbicacion,idBiEstadoPedido,cant_pedidos)
-    SELECT tiempo.idTiempo ,ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido) AS [Cantidad Pedidos]
+    INSERT LOS_BASEADOS.BI_hecho_pedido(idTiempo,idTurnoVenta,idSucursal,idUbicacion,idBiEstadoPedido,cant_pedidos)
+    SELECT tiempo.idTiempo,turn.idTurnoVenta, ds.idSucursal, ubi.idUbicacion, est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
     FROM LOS_BASEADOS.pedido
 	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
 	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal
@@ -413,13 +413,10 @@ BEGIN
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON localidad.idLocalidad = ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
 	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON LOS_BASEADOS.comparar_turno(turn.turno,pedido.fecha) = 1 
 	JOIN LOS_BASEADOS.BI_dimension_estado_pedido est_ped ON est_ped.idEstado = pedido.idEstado
-	GROUP BY tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON sucursal.numeroSucursal = ds.numeroSucursal
+	GROUP BY tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido, ds.idSucursal
 END
 GO
-
---JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON dbo.comparar_fecha(CAST(tiempo.anio AS INT),
---																	   CAST(tiempo.mes AS INT),
---																	   CAST(tiempo.cuatrimestre AS INT),pedido.fecha)=1
 
 /*
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
@@ -496,7 +493,7 @@ EXEC LOS_BASEADOS.BI_migrar_dimension_ubicaciones
 EXEC LOS_BASEADOS.BI_migrar_hecho_compra
 EXEC LOS_BASEADOS.BI_migrar_hecho_envio
 EXEC LOS_BASEADOS.BI_migrar_hecho_factura
-/*
 EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
+/*
 EXEC LOS_BASEADOS.BI_migrar_hecho_venta
 */
