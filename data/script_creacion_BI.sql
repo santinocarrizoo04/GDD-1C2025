@@ -352,7 +352,7 @@ CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
 AS
 BEGIN
 	INSERT INTO LOS_BASEADOS.BI_dimension_turno_venta(turno)
-    VALUES ('08:00 - 13:00'),('14:00 - 20:00')
+    VALUES ('08:00 - 14:00'),('14:00 - 20:00')
 END
 GO
 
