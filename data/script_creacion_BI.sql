@@ -241,7 +241,7 @@ BEGIN
     DECLARE @turno NVARCHAR(255)
 
     IF @HORA BETWEEN 8 AND 13
-        SET @turno = '08:00 - 13:00'
+        SET @turno = '08:00 - 14:00'
     ELSE IF @HORA BETWEEN 14 AND 20
         SET @turno = '14:00 - 20:00'
     ELSE
@@ -257,6 +257,44 @@ AS
 BEGIN
 	RETURN CASE 
 	WHEN LOS_BASEADOS.obtener_turno_venta(DATEPART(HOUR, @FECHA)) = @TURNO 
+        THEN 1
+        ELSE 0
+	END
+END
+GO
+
+CREATE FUNCTION LOS_BASEADOS.obtener_rango_etario(@DIA INT, @MES INT, @ANIO INT)
+RETURNS VARCHAR(255)
+AS
+BEGIN
+    DECLARE @fechaNacimiento DATE = DATEFROMPARTS(@anio, @mes, @dia);
+    DECLARE @edad INT = DATEDIFF(YEAR, @fechaNacimiento, GETDATE());
+
+    -- Ajuste por si aún no cumplió años este año
+    IF DATEADD(YEAR, @edad, @fechaNacimiento) > CAST(GETDATE() AS DATE)
+        SET @edad = @edad - 1;
+
+    DECLARE @rango VARCHAR(10);
+
+    IF @edad < 25
+        SET @rango = '<25';
+    ELSE IF @edad BETWEEN 25 AND 35
+        SET @rango = '25-35';
+    ELSE IF @edad BETWEEN 36 AND 50
+        SET @rango = '35-50';
+    ELSE
+        SET @rango = '>50';
+
+    RETURN @rango;
+END
+GO
+
+CREATE FUNCTION LOS_BASEADOS.comparar_rango_etario(@RANGO VARCHAR(255),@FECHANAC DATETIME2(6))
+RETURNS INT
+AS
+BEGIN
+	RETURN CASE 
+	WHEN LOS_BASEADOS.obtener_rango_etario(DATEPART(DAY, @FECHANAC),DATEPART(MONTH, @FECHANAC),DATEPART(YEAR, @FECHANAC)) = @RANGO 
         THEN 1
         ELSE 0
 	END
@@ -399,7 +437,6 @@ BEGIN
 END
 GO
 
-
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 AS
 BEGIN
@@ -418,20 +455,27 @@ BEGIN
 END
 GO
 
-/*
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 AS
 BEGIN
-	INSERT LOS_BASEADOS.BI_hecho_venta(idTiempo,idUbicacion,idRangoEtario,idBiModeloSillon,total_ventas,cant_ventas)
-	SELECT tiempo.idTiempo,ubi.idUbicacion,
-	FROM LOS_BASEADOS.?
-	JOIN LOS_BASEADOS.cliente cliente on cliente.idCliente= factura.idCliente
-	JOIN LOS_BASEADOS.localidad localidad on localidad.idLocalidad=cliente.idLocalidad
-	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi on cliente.idLocalidad=ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
+	INSERT LOS_BASEADOS.BI_hecho_venta(idTiempo,idUbicacion,idSucursal,idRangoEtario,idBiModeloSillon,total_ventas,cant_ventas)
+	SELECT tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, dre.idRangoEtario, dms.idBiModeloSillon, SUM(df.subtotal), COUNT(f.numeroFactura)
+	FROM LOS_BASEADOS.factura f
+	JOIN LOS_BASEADOS.cliente cliente ON cliente.idCliente= f.idCliente
+	JOIN LOS_BASEADOS.sucursal su ON su.numeroSucursal = f.numeroSucursal
+	JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=su.idLocalidad
+	JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+	JOIN LOS_BASEADOS.detalle_pedido dp ON df.idDetallePedido = dp.idDetallePedido
+	JOIN LOS_BASEADOS.sillon s ON s.codigoSillon = dp.codigoSillon
+	JOIN LOS_BASEADOS.modelo_sillon ms ON s.codigoModelo = ms.codigoModelo
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,f.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON su.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = f.numeroSucursal
+	JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON LOS_BASEADOS.comparar_rango_etario(dre.rango,cliente.fechaNacimiento) = 1
+	JOIN LOS_BASEADOS.BI_dimension_modelo_sillon dms ON dms.codigoModelo = ms.codigoModelo
+	GROUP BY tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, dre.idRangoEtario, dms.idBiModeloSillon
 END
 GO
-*/
 
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
@@ -494,6 +538,4 @@ EXEC LOS_BASEADOS.BI_migrar_hecho_compra
 EXEC LOS_BASEADOS.BI_migrar_hecho_envio
 EXEC LOS_BASEADOS.BI_migrar_hecho_factura
 EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
-/*
 EXEC LOS_BASEADOS.BI_migrar_hecho_venta
-*/

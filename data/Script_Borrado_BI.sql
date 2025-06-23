@@ -12,13 +12,14 @@ DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_modelo_sillon
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tiempo
 
---DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
+DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_factura
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 
-
+DROP FUNCTION LOS_BASEADOS.comparar_rango_etario
+DROP FUNCTION LOS_BASEADOS.obtener_rango_etario
 DROP FUNCTION LOS_BASEADOS.comparar_turno
 DROP FUNCTION LOS_BASEADOS.obtener_turno_venta
 DROP FUNCTION LOS_BASEADOS.comparar_fecha

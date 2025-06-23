@@ -77,6 +77,16 @@ WHERE MONTH(c.fecha) = 1 AND YEAR(c.fecha) = 2026 AND c.numeroSucursal = 107
 -- 5	12242157	107	6	2026-01-29 00:00:00.000000	18256954.25 --> Total (Tela + Madera + Relleno)
 
 -- OK - COINCIDEN LOS MONTOS DE LA TABLA HECHOS CON CONSULTAS SOBRE EL MODELO RELACIONAL
+
+
+
+
+
+
+
+
+
+
 ---------------------------------------------------------------------------------------------------------------------------------------------
 -- PRUEBAS HECHO ENVIO
 
@@ -148,6 +158,15 @@ GROUP BY f.numeroSucursal
 
 -- OK - COINCIDEN LOS MONTOS DE LA TABLA HECHOS CON CONSULTAS SOBRE EL MODELO RELACIONAL
 
+
+
+
+
+
+
+
+
+
 -------------------------------------------------------------------------------------------------------------------------------------------
 -- PRUEBAS HECHO FACTURA
 
@@ -209,6 +228,15 @@ WHERE MONTH(f.fecha) = 1 AND YEAR(f.fecha) = 2026 AND f.numeroSucursal = 142
 -- 57 (numeroSucursal = 142)
 
 -- OK - COINCIDEN LOS MONTOS DE LA TABLA HECHOS CON CONSULTAS SOBRE EL MODELO RELACIONAL
+
+
+
+
+
+
+
+
+
 
 ---------------------------------------------------------------------------------------------------------------------------------------
 -- PRUEBAS HECHO PEDIDO
@@ -296,10 +324,166 @@ AND MONTH(p.fecha) = 1 AND YEAR(p.fecha) = 2026
 
 -- OK - COINCIDEN LOS MONTOS DE LA TABLA HECHOS CON CONSULTAS SOBRE EL MODELO RELACIONAL
 
+
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------------------------
+-- PRUEBAS HECHO VENTAS
+
+/*
+SELECT tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, dre.idRangoEtario, dms.idBiModeloSillon, SUM(df.subtotal), COUNT(f.numeroFactura)
+FROM LOS_BASEADOS.factura f
+JOIN LOS_BASEADOS.cliente cliente ON cliente.idCliente= f.idCliente
+JOIN LOS_BASEADOS.sucursal su ON su.numeroSucursal = f.numeroSucursal
+JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=su.idLocalidad
+JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+JOIN LOS_BASEADOS.detalle_pedido dp ON df.idDetallePedido = dp.idDetallePedido
+JOIN LOS_BASEADOS.sillon s ON s.codigoSillon = dp.codigoSillon
+JOIN LOS_BASEADOS.modelo_sillon ms ON s.codigoModelo = ms.codigoModelo
+JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,f.fecha)=1
+JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON su.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = f.numeroSucursal
+JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON LOS_BASEADOS.comparar_rango_etario(dre.rango,cliente.fechaNacimiento) = 1
+JOIN LOS_BASEADOS.BI_dimension_modelo_sillon dms ON dms.codigoModelo = ms.codigoModelo
+GROUP BY tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, dre.idRangoEtario, dms.idBiModeloSillon
+*/
+
+/* SIN DISTINCT EN EL COUNT (2 SEGUNDOS DE EXECUTION) -- 3584 ROWS -- EL SUM DE CANT TE DA = 61092
+1	434	1	2	1	818482.26	4
+1	434	1	2	2	1146212.81	5
+1	434	1	2	3	413983.65	4
+1	434	1	2	4	1186803.87	6
+1	434	1	2	5	201263.56	2
+1	434	1	2	6	549951.20	3
+1	434	1	2	7	856908.56	4
+*/
+
+/* CON DISTINCT EN EL COUNT (30 SEGUNDOS DE EXECUTION) -- 3584 ROWS -- EL SUM DE CANT TE DA <61092
+1	434	1	2	1	818482.26	3
+1	434	1	2	2	1146212.81	3
+1	434	1	2	3	413983.65	3
+1	434	1	2	4	1186803.87	4
+1	434	1	2	5	201263.56	2
+1	434	1	2	6	549951.20	3
+1	434	1	2	7	856908.56	3
+*/
+
+-- EN MI OPINION, POR UN TEMA DE LOGICA, PARA MI VA SIN EL DISTINCT
+
+-- MIGRAR TODAS LAS VENTAS Y AGRUPAR POR TIEMPO(FECHA), UBICACION(SUCURSAL), SUCURSAL, RANGO ETARIO Y MODELO DEL SILLON VENDIDO
+-- CALCULAR CANTIDAD DE VENTAS Y MONTO TOTAL
+
+SELECT tiempo.mes, tiempo.anio,ubi.provincia, ubi.localidad, ds.numeroSucursal, dre.rango, dms.modelo, 
+SUM(df.subtotal) monto, COUNT(f.numeroFactura) cant
+FROM LOS_BASEADOS.factura f
+JOIN LOS_BASEADOS.cliente cliente ON cliente.idCliente= f.idCliente
+JOIN LOS_BASEADOS.sucursal su ON su.numeroSucursal = f.numeroSucursal
+JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=su.idLocalidad
+JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+JOIN LOS_BASEADOS.detalle_pedido dp ON df.idDetallePedido = dp.idDetallePedido
+JOIN LOS_BASEADOS.sillon s ON s.codigoSillon = dp.codigoSillon
+JOIN LOS_BASEADOS.modelo_sillon ms ON s.codigoModelo = ms.codigoModelo
+JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,f.fecha)=1
+JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON su.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = f.numeroSucursal
+JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON LOS_BASEADOS.comparar_rango_etario(dre.rango,cliente.fechaNacimiento) = 1
+JOIN LOS_BASEADOS.BI_dimension_modelo_sillon dms ON dms.codigoModelo = ms.codigoModelo
+GROUP BY tiempo.mes, tiempo.anio,ubi.provincia, ubi.localidad, ds.numeroSucursal, dre.rango, dms.modelo
+ORDER BY tiempo.mes, tiempo.anio,ubi.provincia, ubi.localidad, ds.numeroSucursal, dre.rango, dms.modelo
+
+/*
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 204719	5164145.25	17
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 337085	1728446.12	12
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 406739	2336547.51	11
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 699551	3327136.75	13
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 700792	1547111.28	10
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 920973	2118326.07	11
+1	2026	Buenos Aires	Cuartel 2	37	>50	Modelo N°: 971176	4510719.89	18
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 204719	818482.26	4
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 337085	1146212.81	5
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 406739	413983.65	4
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 699551	1186803.87	6
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 700792	201263.56	2
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 920973	549951.20	3
+1	2026	Buenos Aires	Cuartel 2	37	25-35	Modelo N°: 971176	856908.56	4
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 204719	2477730.53	7
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 337085	1934891.94	7
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 406739	1460962.58	9
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 699551	3317908.64	10
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 700792	1714205.24	10
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 920973	2226203.09	10
+1	2026	Buenos Aires	Cuartel 2	37	35-50	Modelo N°: 971176	864058.45	5
+
+** LA SUMA DE LA COLUMNA CANT DA 61092, QUE ES LA CANTIDAD DE DETALLE_FACTURA EN EL MODELO RELACIONAL
+** ES DECIR, QUE TODOS LOS DETALLES (QUE DIFIEREN POR MODELO DENTRO DE UNA MISMA FACTURA) ESTAN CONTENIDOS ACA
+** INDICA QUE MIGRE TODOS LOS DATOS
+
+*/
+
+-- MIGRAR TODAS LAS VENTAS Y AGRUPAR POR TIEMPO(FECHA), UBICACION(SUCURSAL), SUCURSAL, RANGO ETARIO Y MODELO DEL SILLON VENDIDO
+-- CALCULAR CANTIDAD DE VENTAS Y MONTO TOTAL
+
+SELECT MONTH(f.fecha) mes, YEAR(f.fecha) anio,p.provincia,l.localidad, s.numeroSucursal, dre.rango, ms.modelo, df.subtotal
+FROM LOS_BASEADOS.factura f
+JOIN LOS_BASEADOS.cliente c ON c.idCliente = f.idCliente
+JOIN LOS_BASEADOS.sucursal s ON f.numeroSucursal = s.numeroSucursal
+JOIN LOS_BASEADOS.localidad l ON s.idLocalidad = l.idLocalidad
+JOIN LOS_BASEADOS.provincia p ON l.idProvincia = p.idProvincia
+JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+JOIN LOS_BASEADOS.detalle_pedido dp ON df.idDetallePedido = dp.idDetallePedido
+JOIN LOS_BASEADOS.sillon si ON si.codigoSillon = dp.codigoSillon
+JOIN LOS_BASEADOS.modelo_sillon ms ON si.codigoModelo = ms.codigoModelo
+JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON LOS_BASEADOS.comparar_rango_etario(dre.rango, c.fechaNacimiento) =1
+WHERE s.numeroSucursal = 37 AND dre.rango = '>50' AND ms.modelo = 'Modelo N°: 204719'
+AND MONTH(f.fecha) = 1 AND YEAR(f.fecha) = 2026
+
+/*
+COUNT = 17 -- SUM = 5164145.25 --> Sucursal 37, Rango: >50, Modelo 204719
+*/
+
+SELECT f.numeroFactura, f.fecha, f.idCliente, f.idFactura, f.numeroSucursal, f.total, df.subtotal
+FROM LOS_BASEADOS.factura f
+JOIN LOS_BASEADOS.cliente c ON c.idCliente = f.idCliente
+JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+JOIN LOS_BASEADOS.detalle_pedido dp ON df.idDetallePedido = dp.idDetallePedido
+JOIN LOS_BASEADOS.sillon si ON si.codigoSillon = dp.codigoSillon
+JOIN LOS_BASEADOS.modelo_sillon ms ON si.codigoModelo = ms.codigoModelo
+JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON LOS_BASEADOS.comparar_rango_etario(dre.rango, c.fechaNacimiento) =1
+WHERE MONTH(f.fecha) = 1 AND YEAR(f.fecha) = 2026 AND f.numeroSucursal = 37 AND ms.modelo = 'Modelo N°: 204719' AND dre.rango = '>50'
+ORDER BY f.numeroFactura, f.fecha, f.idCliente, f.idFactura, f.numeroSucursal, f.total, df.subtotal
+
+-- DEBERIA ESTAR OK, COINCIDEN LOS MONTOS EN 1 SOLO CASO, NO LO PROBE EN OTROS CASOS
+
+
+
+
+
+
+
+
+
+
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 SELECT * FROM LOS_BASEADOS.BI_dimension_ubicacion
 SELECT * FROM LOS_BASEADOS.BI_dimension_tiempo
 SELECT * FROM LOS_BASEADOS.BI_dimension_sucursal
+SELECT * FROM LOS_BASEADOS.BI_dimension_rango_etario
+SELECT * FROM LOS_BASEADOS.BI_dimension_modelo_sillon
+SELECT * FROM LOS_BASEADOS.BI_dimension_tipo_material
+SELECT * FROM LOS_BASEADOS.BI_dimension_turno_venta
+SELECT * FROM LOS_BASEADOS.BI_dimension_estado_pedido
+
+SELECT * FROM LOS_BASEADOS.BI_hecho_compra
+SELECT * FROM LOS_BASEADOS.BI_hecho_envio
+SELECT * FROM LOS_BASEADOS.BI_hecho_factura
+SELECT * FROM LOS_BASEADOS.BI_hecho_pedido
+SELECT * FROM LOS_BASEADOS.BI_hecho_venta
 
 SELECT * FROM LOS_BASEADOS.gananciasView
