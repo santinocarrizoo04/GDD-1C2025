@@ -19,7 +19,7 @@ GROUP BY tiempo.idTiempo, ds.idSucursal, dtm.idBiTipoMaterial, ubi.idUbicacion
 -- MIGRAR TODAS LAS COMPRAS Y AGRUPAR POR TIEMPO(FECHA), UBICACION(SUCURSAL), SUCURSAL, TIPO_MATERIAL
 -- CALCULAR TOTAL_COMPRAS Y CANT_COMPRAS
 
-SELECT tiempo.mes, tiempo.anio, ubi.localidad, ubi.provincia, ds.numeroSucursal, dtm.tipo, count (distinct compra.numeroCompra) cant, sum(detalle_compra.subtotal) tot
+SELECT tiempo.mes, tiempo.anio, ubi.localidad, ubi.provincia, ds.numeroSucursal, dtm.tipo, count (compra.numeroCompra) cant, sum(detalle_compra.subtotal) tot
 FROM LOS_BASEADOS.compra compra
 JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=sucursal.numeroSucursal
 JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad= localidad.idLocalidad
@@ -36,12 +36,12 @@ ORDER BY tiempo.mes, tiempo.anio, ubi.localidad, ubi.provincia, ds.numeroSucursa
 
 /*
 
-1	2026	Alta Gracia	Santia; Del Estero	107	Madera	1	5887169.68
-1	2026	Alta Gracia	Santia; Del Estero	107	Relleno	1	6544578.53
-1	2026	Alta Gracia	Santia; Del Estero	107	Tela	1	5825206.03
-1	2026	Cuartel 2	Buenos Aires	37	Madera	2	8934970.80
-1	2026	Cuartel 2	Buenos Aires	37	Relleno	2	9961816.59
-1	2026	Cuartel 2	Buenos Aires	37	Tela	2	8838224.31
+1	2026	Alta Gracia	Santia; Del Estero	107	Madera	3	5887169.68
+1	2026	Alta Gracia	Santia; Del Estero	107	Relleno	3	6544578.53
+1	2026	Alta Gracia	Santia; Del Estero	107	Tela	3	5825206.03
+1	2026	Cuartel 2	Buenos Aires	37	Madera	6	8934970.80
+1	2026	Cuartel 2	Buenos Aires	37	Relleno	6	9961816.59
+1	2026	Cuartel 2	Buenos Aires	37	Tela	6	8838224.31
 
 */
 
@@ -56,7 +56,7 @@ JOIN LOS_BASEADOS.provincia p ON l.idProvincia = p.idProvincia
 JOIN LOS_BASEADOS.detalle_compra dc ON dc.idCompra = c.idCompra
 JOIN LOS_BASEADOS.material m ON dc.idMaterial = m.idMaterial
 JOIN LOS_BASEADOS.tipo_material tm ON tm.idTipoMaterial = m.idTipoMaterial
-WHERE s.numeroSucursal = 37 AND tm.tipo = 'Madera'
+WHERE s.numeroSucursal = 107 AND tm.tipo = 'Madera'
 AND MONTH(c.fecha) = 1 AND YEAR(c.fecha) = 2026
 GROUP BY s.numeroSucursal, l.localidad, p.provincia, c.fecha
 
@@ -71,8 +71,12 @@ GROUP BY s.numeroSucursal, l.localidad, p.provincia, c.fecha
 -- 1	2026	Cuartel 2	Buenos Aires	37	4954091.27 --> Madera
 -- 1	2026	Cuartel 2	Buenos Aires	37	3980879.53 --> Madera
 
-SELECT * FROM LOS_BASEADOS.compra c
-WHERE MONTH(c.fecha) = 1 AND YEAR(c.fecha) = 2026 AND c.numeroSucursal = 107
+SELECT *
+FROM LOS_BASEADOS.compra c
+JOIN LOS_BASEADOS.detalle_compra dc ON dc.idCompra = c.idCompra
+JOIN LOS_BASEADOS.material m ON m.idMaterial = dc.idMaterial
+JOIN LOS_BASEADOS.tipo_material tm ON tm.idTipoMaterial = m.idTipoMaterial 
+WHERE MONTH(c.fecha) = 1 AND YEAR(c.fecha) = 2026 AND c.numeroSucursal = 107 AND tm.tipo = 'Tela'
 
 -- 5	12242157	107	6	2026-01-29 00:00:00.000000	18256954.25 --> Total (Tela + Madera + Relleno)
 

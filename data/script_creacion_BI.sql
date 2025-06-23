@@ -389,7 +389,7 @@ CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 AS
 BEGIN
     INSERT LOS_BASEADOS.BI_hecho_compra(idTiempo, idUbicacion, idSucursal, idBiTipoMaterial, cant_compras, total_compras)
-	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial, count (distinct compra.numeroCompra), sum(detalle_compra.subtotal)
+	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial, count (compra.numeroCompra), sum(detalle_compra.subtotal)
     FROM LOS_BASEADOS.compra compra
     JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=sucursal.numeroSucursal
 	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad= localidad.idLocalidad
