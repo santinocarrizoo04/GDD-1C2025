@@ -479,6 +479,8 @@ GO
 
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
+/*
+-- 1) 68 rows - Revisar
 CREATE VIEW LOS_BASEADOS.gananciasView AS
 	SELECT dt.mes, dt.anio, ds.numeroSucursal, ds.direccion,
 		( SELECT hf1.total_facturas - SUM(hc1.total_compras)
@@ -492,36 +494,168 @@ CREATE VIEW LOS_BASEADOS.gananciasView AS
 	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hf.idSucursal = ds.idSucursal
 	JOIN LOS_BASEADOS.BI_hecho_compra hc ON hc.idTiempo = hf.idTiempo AND hc.idSucursal = hf.idSucursal
 	GROUP BY dt.mes, dt.anio, ds.numeroSucursal, ds.direccion, hf.idSucursal, hf.idTiempo;
+GO*/
+
+-- 1) 171 rows - ok?
+-- Ganancias: Total de ingresos (facturación) - total de egresos (compras), por cada mes, por cada sucursal.
+CREATE VIEW LOS_BASEADOS.gananciasView AS
+	SELECT
+		dt.anio,
+		dt.mes,
+		ds.numeroSucursal,
+		ds.direccion,
+		ubi.provincia,
+		ubi.localidad,
+		SUM(hf.total_facturas) - ISNULL(SUM(hc.total_compras), 0) AS Ganancia
+	FROM LOS_BASEADOS.BI_hecho_factura hf
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hf.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON hf.idUbicacion = ubi.idUbicacion
+	LEFT JOIN LOS_BASEADOS.BI_hecho_compra hc
+		ON hc.idTiempo = hf.idTiempo
+		AND hc.idSucursal = hf.idSucursal
+		AND hc.idUbicacion = hf.idUbicacion
+	GROUP BY
+		dt.anio, dt.mes, ds.numeroSucursal, ds.direccion, ubi.provincia, ubi.localidad
 GO
 
-/*
+-- 2) 35 rows - ok?
+-- Factura promedio mensual por provincia y cuatrimestre
 CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
+	SELECT 
+		dt.anio,
+		dt.cuatrimestre,
+		du.provincia,
+		AVG(hf.total_facturas / hf.cant_facturas) AS factura_promedio
+	FROM LOS_BASEADOS.BI_hecho_factura hf
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON hf.idUbicacion = du.idUbicacion
+	GROUP BY dt.anio, dt.cuatrimestre, du.provincia
 GO
 
+-- 3) 405 rows - ok?
+-- Rendimiento de modelos: Top 3 modelos más vendidos por cuatrimestre, localidad y rango etario
 CREATE VIEW LOS_BASEADOS.rendimientoModelosView AS
+	SELECT *
+	FROM (
+		SELECT 
+			dt.anio,
+			dt.cuatrimestre,
+			du.localidad,
+			dre.rango AS rango_etario,
+			dms.modelo,
+			dms.descripcion,
+			hv.cant_ventas,
+			ROW_NUMBER() OVER (
+				PARTITION BY dt.anio, dt.cuatrimestre, du.localidad, dre.rango
+				ORDER BY hv.cant_ventas DESC
+			) AS rn
+		FROM LOS_BASEADOS.BI_hecho_venta hv
+		JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hv.idTiempo = dt.idTiempo
+		JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON hv.idUbicacion = du.idUbicacion
+		JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON hv.idRangoEtario = dre.idRangoEtario
+		JOIN LOS_BASEADOS.BI_dimension_modelo_sillon dms ON hv.idBiModeloSillon = dms.idBiModeloSillon
+	) t
+	WHERE rn <= 3
 GO
 
+-- 4) 342 rows - ok?
+-- Volumen de pedidos por turno, sucursal y mes
 CREATE VIEW LOS_BASEADOS.volumenPedidosView AS
+    SELECT 
+        dt.anio,
+        dt.mes,
+        ds.numeroSucursal,
+        dtv.turno,
+        SUM(hp.cant_pedidos) AS cant_pedidos
+    FROM LOS_BASEADOS.BI_hecho_pedido hp
+    JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hp.idTiempo = dt.idTiempo
+    JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hp.idSucursal = ds.idSucursal
+    JOIN LOS_BASEADOS.BI_dimension_turno_venta dtv ON hp.idTurnoVenta = dtv.idTurnoVenta
+    GROUP BY dt.anio, dt.mes, ds.numeroSucursal, dtv.turno
 GO
 
+-- 5) 90 rows - ok?
+-- Conversión de pedidos: % de pedidos según estado, por cuatrimestre y sucursal
 CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
+	SELECT 
+		dt.anio,
+		dt.cuatrimestre,
+		ds.numeroSucursal,
+		dep.estado,
+		SUM(hp.cant_pedidos) AS pedidos_estado,
+		SUM(SUM(hp.cant_pedidos)) OVER (PARTITION BY dt.anio, dt.cuatrimestre, ds.numeroSucursal) AS total_pedidos,
+		CAST(SUM(hp.cant_pedidos) * 100.0 / NULLIF( SUM(SUM(hp.cant_pedidos)) OVER (PARTITION BY dt.anio, dt.cuatrimestre, ds.numeroSucursal), 0) AS DECIMAL(5,2)) AS porcentaje
+	FROM LOS_BASEADOS.BI_hecho_pedido hp
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hp.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hp.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_dimension_estado_pedido dep ON hp.idBiEstadoPedido = dep.idBiEstadoPedido
+	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dep.estado
 GO
 
+-- 6) 
+-- Tiempo promedio de fabricación: Promedio de días entre pedido y factura por sucursal y cuatrimestre
+/*
 CREATE VIEW LOS_BASEADOS.tiempoPromedioFabricacionView AS
-GO
-
-CREATE VIEW LOS_BASEADOS.promedioComprasView AS
-GO
-
-CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
-GO
-
-CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
-GO
-
-CREATE VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView AS
+	
 GO
 */
+
+-- 7) 19 rows - ok?
+-- Promedio de compras por mes
+CREATE VIEW LOS_BASEADOS.promedioComprasView AS
+	SELECT 
+		dt.anio,
+		dt.mes,
+		AVG(hc.total_compras * 1.0 / NULLIF(hc.cant_compras,0)) AS promedio_compras
+	FROM LOS_BASEADOS.BI_hecho_compra hc
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
+	GROUP BY dt.anio, dt.mes
+GO
+
+-- 8) 114 rows - ok?
+-- Compras por Tipo de Material, sucursal y cuatrimestre
+CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
+	SELECT 
+		dt.anio,
+		dt.cuatrimestre,
+		ds.numeroSucursal,
+		dtm.tipo,
+		SUM(hc.total_compras) AS total_gastado
+	FROM LOS_BASEADOS.BI_hecho_compra hc
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hc.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON hc.idBiTipoMaterial = dtm.idBiTipoMaterial
+	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
+GO
+
+-- 9) 171 rows - ok?
+-- Porcentaje de cumplimiento de envíos en tiempo por mes
+CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
+	SELECT 
+		dt.anio,
+		dt.mes,
+		ds.numeroSucursal,
+		SUM(he.cant_envios_cumplidos) AS envios_cumplidos,
+		SUM(he.cant_envios_total) AS envios_totales,
+		CAST(SUM(he.cant_envios_cumplidos) * 100.0 / NULLIF(SUM(he.cant_envios_total),0) AS DECIMAL(5,2)) AS porcentaje_cumplimiento
+	FROM LOS_BASEADOS.BI_hecho_envio he
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON he.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON he.idSucursal = ds.idSucursal
+	GROUP BY dt.anio, dt.mes, ds.numeroSucursal
+GO
+
+-- 10) 3 rows - ok?
+-- Localidades con mayor costo de envío promedio (top 3)
+CREATE VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView AS
+	SELECT TOP 3
+		du.localidad,
+		AVG(he.total_costo_envio * 1.0 / NULLIF(he.cant_envios_total,0)) AS promedio_costo_envio
+	FROM LOS_BASEADOS.BI_hecho_envio he
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON he.idUbicacion = du.idUbicacion
+	GROUP BY du.localidad
+	ORDER BY promedio_costo_envio DESC
+GO
 
 -- EJECUCION DE PROCEDURES --------------------------------------------------------------------
 
