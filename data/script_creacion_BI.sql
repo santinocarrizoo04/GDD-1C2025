@@ -496,7 +496,7 @@ CREATE VIEW LOS_BASEADOS.gananciasView AS
 	GROUP BY dt.mes, dt.anio, ds.numeroSucursal, ds.direccion, hf.idSucursal, hf.idTiempo;
 GO*/
 
--- 1) 171 rows - ok?
+-- 1) 171 rows - ok? -- SI
 -- Ganancias: Total de ingresos (facturación) - total de egresos (compras), por cada mes, por cada sucursal.
 CREATE VIEW LOS_BASEADOS.gananciasView AS
 	SELECT
@@ -519,7 +519,7 @@ CREATE VIEW LOS_BASEADOS.gananciasView AS
 		dt.anio, dt.mes, ds.numeroSucursal, ds.direccion, ubi.provincia, ubi.localidad
 GO
 
--- 2) 35 rows - ok?
+-- 2) 35 rows - ok? -- SI
 -- Factura promedio mensual por provincia y cuatrimestre
 CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 	SELECT 
@@ -533,7 +533,7 @@ CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 	GROUP BY dt.anio, dt.cuatrimestre, du.provincia
 GO
 
--- 3) 405 rows - ok?
+-- 3) 405 rows - ok? -- SI
 -- Rendimiento de modelos: Top 3 modelos más vendidos por cuatrimestre, localidad y rango etario
 CREATE VIEW LOS_BASEADOS.rendimientoModelosView AS
 	SELECT *
@@ -559,7 +559,7 @@ CREATE VIEW LOS_BASEADOS.rendimientoModelosView AS
 	WHERE rn <= 3
 GO
 
--- 4) 342 rows - ok?
+-- 4) 342 rows - ok? -- SI
 -- Volumen de pedidos por turno, sucursal y mes
 CREATE VIEW LOS_BASEADOS.volumenPedidosView AS
     SELECT 
@@ -575,7 +575,7 @@ CREATE VIEW LOS_BASEADOS.volumenPedidosView AS
     GROUP BY dt.anio, dt.mes, ds.numeroSucursal, dtv.turno
 GO
 
--- 5) 90 rows - ok?
+-- 5) 90 rows - ok? -- SI
 -- Conversión de pedidos: % de pedidos según estado, por cuatrimestre y sucursal
 CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 	SELECT 
@@ -601,7 +601,7 @@ CREATE VIEW LOS_BASEADOS.tiempoPromedioFabricacionView AS
 GO
 */
 
--- 7) 19 rows - ok?
+-- 7) 19 rows - ok? -- SI
 -- Promedio de compras por mes
 CREATE VIEW LOS_BASEADOS.promedioComprasView AS
 	SELECT 
@@ -613,7 +613,7 @@ CREATE VIEW LOS_BASEADOS.promedioComprasView AS
 	GROUP BY dt.anio, dt.mes
 GO
 
--- 8) 114 rows - ok?
+-- 8) 114 rows - ok? -- SI
 -- Compras por Tipo de Material, sucursal y cuatrimestre
 CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
 	SELECT 
@@ -629,7 +629,7 @@ CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
 	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
 GO
 
--- 9) 171 rows - ok?
+-- 9) 171 rows - ok? -- 19 dice el grupo
 -- Porcentaje de cumplimiento de envíos en tiempo por mes
 CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
 	SELECT 
