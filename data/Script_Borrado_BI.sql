@@ -33,7 +33,7 @@ DROP FUNCTION LOS_BASEADOS.obtener_rango_etario
 DROP FUNCTION LOS_BASEADOS.comparar_turno
 DROP FUNCTION LOS_BASEADOS.obtener_turno_venta
 DROP FUNCTION LOS_BASEADOS.comparar_fecha
-DROP FUNCTION LOS_BASEADOS.envio_cumplido
+DROP FUNCTION LOS_BASEADOS.cant_envios_cumplidos
 DROP FUNCTION LOS_BASEADOS.obtener_cuatrimestre
 
 DROP TABLE LOS_BASEADOS.BI_hecho_fabricacion

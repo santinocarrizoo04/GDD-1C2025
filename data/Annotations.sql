@@ -493,6 +493,7 @@ SELECT * FROM LOS_BASEADOS.BI_hecho_venta
 SELECT * FROM LOS_BASEADOS.gananciasView
 GO
 
+/*
 -- 1) 171 rows - ok? -- SI
 -- Ganancias: Total de ingresos (facturación) - total de egresos (compras), por cada mes, por cada sucursal.
 CREATE VIEW LOS_BASEADOS.gananciasView AS
@@ -515,3 +516,14 @@ CREATE VIEW LOS_BASEADOS.gananciasView AS
 	GROUP BY
 		dt.anio, dt.mes, ds.numeroSucursal, ds.direccion, ubi.provincia, ubi.localidad
 GO
+*/
+
+SELECT *
+FROM LOS_BASEADOS.envio e1
+JOIN LOS_BASEADOS.envio e2 ON e1.idEnvio = e2.idEnvio
+WHERE e1.fechaEntrega != e2.fechaProgramada
+
+SELECT * FROM LOS_BASEADOS.envio WHERE fechaEntrega != fechaProgramada
+
+SELECT * FROM LOS_BASEADOS.BI_hecho_envio
+SELECT * FROM LOS_BASEADOS.porcentajeCumplimientoEnviosView

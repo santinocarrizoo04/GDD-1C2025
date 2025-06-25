@@ -1,7 +1,7 @@
 USE GD1C2025 -- Usa la DB GD1C2025
 GO
 
--- CREACION DE TABLAS DE DIMENSIONES --------------------------------------------------------------------
+-- CREACION DE TABLAS DE DIMENSIONES DEL MODELO DIMENSIONAL DESARROLLADO --------------------------------------------------------------------
 
 CREATE TABLE LOS_BASEADOS.BI_dimension_tiempo(
 	idTiempo DECIMAL(18,0) NOT NULL IDENTITY(1,1),
@@ -62,7 +62,7 @@ CREATE TABLE LOS_BASEADOS.BI_dimension_estado_pedido(
 );
 GO
 
--- CREACION DE TABLAS DE HECHOS --------------------------------------------------------------------
+-- CREACION DE TABLAS DE HECHOS DEL MODELO DIMENSIONAL DESARROLLADO --------------------------------------------------------------------
 
 CREATE TABLE LOS_BASEADOS.BI_hecho_factura(
 	idTiempo DECIMAL(18,0) NOT NULL,
@@ -123,8 +123,9 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_fabricacion(
 );
 GO
 
--- CREACION DE CONSTRAINTS --------------------------------------------------------------------
+-- CREACION DE CONSTRAINTS DE LAS TABLAS (PKS, FKS)--------------------------------------------------------------------
 
+-- CREACION DE UNA PRIMARY KEY PARA UNA TABLA DE DIMENSIONES
 ALTER TABLE LOS_BASEADOS.BI_dimension_estado_pedido ADD CONSTRAINT PK_idBiEstadoPedido PRIMARY KEY(idBiEstadoPedido);
 GO
 
@@ -151,8 +152,10 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_dimension_modelo_sillon ADD CONSTRAINT PK_idBiModeloSillon PRIMARY KEY(idBiModeloSillon);
 GO
 
+--CREACION DE UNA PRIMARY KEY PARA UNA TABLA DE HECHOS
 ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT PK_hechoFactura PRIMARY KEY(idTiempo, idUbicacion, idSucursal);
 GO
+--CREACION DE LAS FOREIGN KEY PARA UNA TABLA DE HECHOS QUE REFERENCIAN A LAS TABLAS DE DIMENSIONES
 ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
@@ -215,8 +218,9 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT FK_hechoFabricacion_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 
--- CREACION DE FUNCIONES --------------------------------------------------------------------
+-- CREACION DE FUNCIONES AUXILIARES PARA LA MIGRACION --------------------------------------------------------------------
 
+-- DADO UN MES, DEVUELVE EL CUATRIMESTRE AL QUE PERTENECE
 CREATE FUNCTION LOS_BASEADOS.obtener_cuatrimestre (@MES INT)
 RETURNS INT 
 BEGIN
@@ -228,16 +232,28 @@ BEGIN
 END
 GO
 
-CREATE FUNCTION LOS_BASEADOS.envio_cumplido(@FECHA_PROGRAMADA DATETIME2, @FECHA_ENTREGA DATETIME2)
+-- DADA UNA TIEMPO, UBICACION Y SUCURSAL, DEVUELVE LA CANTIDAD DE ENVIOS CUMPLIDOS (fechaEntrega = fechaProgramada)
+CREATE FUNCTION LOS_BASEADOS.cant_envios_cumplidos(@IDTIEMPO DECIMAL(18,0), @IDUBICACION DECIMAL(18,0), @IDSUCURSAL DECIMAL(18,0))
 RETURNS INT
 BEGIN	
-	DECLARE @CONT INT;
-	SET @CONT = 0;
-		IF(YEAR(@FECHA_PROGRAMADA) = YEAR(@FECHA_ENTREGA) AND MONTH(@FECHA_PROGRAMADA) = MONTH(@FECHA_ENTREGA) AND DAY(@FECHA_PROGRAMADA) = DAY(@FECHA_ENTREGA)) SET @CONT = 1;
-	RETURN @CONT;
+	DECLARE @CONT INT
+	SET @CONT = 
+		(	SELECT COUNT(*)
+			FROM LOS_BASEADOS.envio e
+			JOIN LOS_BASEADOS.factura f ON e.idFactura = f.idFactura
+			JOIN LOS_BASEADOS.sucursal s ON s.numeroSucursal= f.numeroSucursal
+			JOIN LOS_BASEADOS.localidad l ON l.idLocalidad=s.idLocalidad
+
+			JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,e.fechaEntrega)=1 AND tiempo.idTiempo = @IDTIEMPO
+			JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON s.idLocalidad=ubi.idLocalidad AND l.idProvincia=ubi.idProvincia AND ubi.idUbicacion = @IDUBICACION
+			JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = s.numeroSucursal AND ds.idSucursal = @IDSUCURSAL
+			WHERE e.fechaEntrega = e.fechaProgramada
+		)
+	RETURN @CONT
 END
 GO
 
+-- DADO UN ANIO, MES, CUATRIMESTRE Y UNA FECHA, DEVUELVE 1 SI COINCIDEN Y 0 SI NO COINCIDEN
 CREATE FUNCTION LOS_BASEADOS.comparar_fecha(@ANIO INT,@MES INT,@CUATRI INT,@FECHA DATETIME2)
 RETURNS INT
 AS
@@ -252,6 +268,7 @@ BEGIN
 END
 GO
 
+-- DADA UNA HORA, DEVUELVE EL TURNO DE VENTA AL QUE PERTENECE
 CREATE FUNCTION LOS_BASEADOS.obtener_turno_venta (@HORA INT)
 RETURNS NVARCHAR(255)
 AS
@@ -269,6 +286,7 @@ BEGIN
 END
 GO
 
+-- DADO UN TURNO Y UNA FECHA, DEVUELVE 1 SI LA FECHA PERTENECE AL TURNO Y 0 SI NO PERTENECE
 CREATE FUNCTION LOS_BASEADOS.comparar_turno(@TURNO VARCHAR(255),@FECHA DATETIME2)
 RETURNS INT
 AS
@@ -281,6 +299,7 @@ BEGIN
 END
 GO
 
+-- DADO UN DIA, MES Y ANIO (FECHA DE NACIMIENTO) DEVUELVE EL RANGO ETARIO AL QUE PERTENECE
 CREATE FUNCTION LOS_BASEADOS.obtener_rango_etario(@DIA INT, @MES INT, @ANIO INT)
 RETURNS VARCHAR(255)
 AS
@@ -307,6 +326,7 @@ BEGIN
 END
 GO
 
+-- DADO UN RANGO ETARIO Y UNA FECHA DE NACIMIENTO, DEVUELVE 1 SI LA FECHA PERTENECE AL RANGO Y 0 SI NO PERTENECE
 CREATE FUNCTION LOS_BASEADOS.comparar_rango_etario(@RANGO VARCHAR(255),@FECHANAC DATETIME2(6))
 RETURNS INT
 AS
@@ -319,8 +339,9 @@ BEGIN
 END
 GO
 
--- CREACION DE PROCEDURES PARA MIGRAR DATOS A DIMENSIONES --------------------------------------------------------------------
+-- CREACION DE PROCEDURES PARA MIGRAR DATOS DEL MODELO RELACIONAL A LAS TABLAS DE DIMENSIONES ----------------------------
 
+-- MIGRA DESDE LOCALIDADES Y PROVINCIAS
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_ubicaciones
 AS
 BEGIN
@@ -331,6 +352,7 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE SUCURSALES
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_sucursal
 AS
 BEGIN
@@ -340,6 +362,7 @@ BEGIN
 END
 GO
 
+-- INSERTA LOS RANGOS ESTABLECIDOS EN EL ENUNCIADO
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_rango_etario
 AS
 BEGIN
@@ -348,6 +371,7 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE TIPO_MATERIAL
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tipo_material
 AS
 BEGIN
@@ -357,6 +381,7 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE ESTADO (ESTADO DEL PEDIDO)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_estado_pedido
 AS
 BEGIN
@@ -366,6 +391,7 @@ BEGIN
 END
 GO
 
+-- INSERTA LOS TURNOS ESTABLECIDOS EN EL ENUNCIADO 
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
 AS
 BEGIN
@@ -374,6 +400,7 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE MODELO_SILLON
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_modelo_sillon
 AS
 BEGIN
@@ -383,6 +410,7 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE LAS TABLAS QUE TIENEN FECHAS Y SE RELACIONAN CON LOS HECHOS (ENVIO, COMPRA, PEDIDO, FACTURA)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tiempo
 AS
 BEGIN
@@ -401,8 +429,10 @@ BEGIN
 END
 GO
 
--- CREACION DE PROCEDURES PARA MIGRAR DATOS A HECHOS --------------------------------------------------------------------
+-- CREACION DE PROCEDURES PARA MIGRAR LOS DATOS DEL MODELO RELACIONAL A LAS TABLAS DE HECHOS -------------------------------------
 
+-- MIGRA DESDE COMPRA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
+-- CANTISAD Y TOTAL DE COMPRAS POR TIEMPO, UBICACION, SUCURSAL Y TIPO DE MATERIAL
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 AS
 BEGIN
@@ -423,11 +453,14 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE ENVIO (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
+-- CANTIDAD (CUMPLIDOS Y TOTAL) Y MONTO TOTAL DE ENVIOS POR TIEMPO, UBICACION Y SUCURSAL
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio
 AS
 BEGIN
-	INSERT LOS_BASEADOS.BI_hecho_envio(idTiempo, idUbicacion, idSucursal, cant_envios_cumplidos, cant_envios_total, total_costo_envio)
-	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, count(LOS_BASEADOS.envio_cumplido(envio.fechaProgramada,envio.fechaEntrega)), count(*), sum(envio.total)
+	INSERT LOS_BASEADOS.BI_hecho_envio(idTiempo, idUbicacion, idSucursal, cant_envios_total, total_costo_envio, cant_envios_cumplidos)
+	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, count(*), sum(envio.total), 
+			LOS_BASEADOS.cant_envios_cumplidos(idTiempo, idUbicacion, idSucursal)
 	FROM LOS_BASEADOS.envio envio
 	JOIN LOS_BASEADOS.factura factura ON envio.idFactura = factura.idFactura
 	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal= factura.numeroSucursal
@@ -440,6 +473,8 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE FACTURA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
+-- CANTIDAD Y MONTO TOTAL DE FACTURAS POR TIEMPO, UBICACION Y SUCURSAL
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_factura
 AS
 BEGIN
@@ -455,6 +490,8 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE PEDIDO (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
+-- CANTIDAD DE PEDIDOS POR TIEMPO, UBICACION, SUCURSAL, TURNO DE VENTA Y ESTADO DEL PEDIDO
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 AS
 BEGIN
@@ -473,6 +510,8 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE FACTURA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
+--CANTIDAD Y MONTO TOTAL DE VENTAS POR TIEMPO, UBICACION, SUCURSAL, RANGO ETARIO DEL CLIENTE Y MODELO DEL SILLON
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 AS
 BEGIN
@@ -495,6 +534,8 @@ BEGIN
 END
 GO
 
+-- MIGRA DESDE FACTURA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
+-- TIEMPO Y CANTIDAD TOTAL DE FABRICACION POR TIEMPO, UBICACION Y SUCURSAL
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_fabricacion
 AS
 BEGIN
@@ -515,7 +556,7 @@ GO
 
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
--- 1) 171 Rows + ganancias bien calculadas
+-- 1) 171 Rows
 -- Total ingresos - Total egresos por mes y sucursal
 CREATE VIEW LOS_BASEADOS.gananciasView AS
 	SELECT dt.mes, dt.anio, ds.numeroSucursal, ds.direccion, du.provincia, du.localidad,
@@ -540,7 +581,7 @@ CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 		dt.anio,
 		dt.cuatrimestre,
 		du.provincia,
-		AVG(hf.total_facturas) AS factura_promedio
+		AVG(hf.total_facturas/ hf.cant_facturas) AS factura_promedio
 	FROM LOS_BASEADOS.BI_hecho_factura hf
 	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON hf.idUbicacion = du.idUbicacion
@@ -548,7 +589,7 @@ CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 GO
 
 -- 3) 405 Rows
--- Rendimiento de modelos: Top 3 modelos más vendidos por cuatrimestre, localidad y rango etario
+-- Top 3 modelos más vendidos por cuatrimestre, localidad y rango etario
 CREATE VIEW LOS_BASEADOS.rendimientoModelosView AS
 	SELECT *
 	FROM (
@@ -590,7 +631,7 @@ CREATE VIEW LOS_BASEADOS.volumenPedidosView AS
 GO
 
 -- 5) 90 Rows
--- Conversión de pedidos: % de pedidos según estado, por cuatrimestre y sucursal
+-- Porcentaje de pedidos según estado, por cuatrimestre y sucursal
 CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 	SELECT 
 		dt.anio,
@@ -608,7 +649,7 @@ CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 GO
 
 -- 6) 45 Rows
--- Tiempo promedio de fabricación: Promedio de días entre pedido y factura por sucursal y cuatrimestre
+-- Promedio de días que pasan entre pedido y factura por sucursal y cuatrimestre
 
 CREATE VIEW LOS_BASEADOS.tiempoPromedioFabricacionView AS
 	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, SUM(hf.total_tiempo)/SUM(hf.cant_pedidos) TiempoPromedio
@@ -624,14 +665,14 @@ CREATE VIEW LOS_BASEADOS.promedioComprasView AS
 	SELECT 
 		dt.anio,
 		dt.mes,
-		AVG(hc.total_compras * 1.0 ) AS promedio_compras
+		AVG(hc.total_compras / COALESCE(hc.cant_compras,1)) AS promedio_compras
 	FROM LOS_BASEADOS.BI_hecho_compra hc
 	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
 	GROUP BY dt.anio, dt.mes
 GO
 
 -- 8) 114 Rows
--- Compras por Tipo de Material, sucursal y cuatrimestre
+-- Importe total de compras por Tipo de Material, sucursal y cuatrimestre
 CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
 	SELECT 
 		dt.anio,
@@ -662,11 +703,11 @@ CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
 GO
 
 -- 10) 3 Rows
--- Localidades con mayor costo de envío promedio (top 3)
+-- TOP 3 localidades con mayor costo de envío promedio
 CREATE VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView AS
 	SELECT TOP 3
 		du.localidad,
-		AVG(he.total_costo_envio * 1.0) AS promedio_costo_envio
+		AVG(he.total_costo_envio / he.cant_envios_cumplidos) AS promedio_costo_envio
 	FROM LOS_BASEADOS.BI_hecho_envio he
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON he.idUbicacion = du.idUbicacion
 	GROUP BY du.localidad
@@ -690,5 +731,3 @@ EXEC LOS_BASEADOS.BI_migrar_hecho_factura
 EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
 EXEC LOS_BASEADOS.BI_migrar_hecho_venta
 EXEC LOS_BASEADOS.BI_migrar_hecho_fabricacion
-
-SELECT * FROM LOS_BASEADOS.localidadesConMayorCostoEnvioView
