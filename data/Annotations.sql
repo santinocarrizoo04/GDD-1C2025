@@ -491,3 +491,27 @@ SELECT * FROM LOS_BASEADOS.BI_hecho_pedido
 SELECT * FROM LOS_BASEADOS.BI_hecho_venta
 
 SELECT * FROM LOS_BASEADOS.gananciasView
+GO
+
+-- 1) 171 rows - ok? -- SI
+-- Ganancias: Total de ingresos (facturación) - total de egresos (compras), por cada mes, por cada sucursal.
+CREATE VIEW LOS_BASEADOS.gananciasView AS
+	SELECT
+		dt.anio,
+		dt.mes,
+		ds.numeroSucursal,
+		ds.direccion,
+		ubi.provincia,
+		ubi.localidad,
+		SUM(hf.total_facturas) - ISNULL(SUM(hc.total_compras), 0) AS Ganancia
+	FROM LOS_BASEADOS.BI_hecho_factura hf
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hf.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON hf.idUbicacion = ubi.idUbicacion
+	LEFT JOIN LOS_BASEADOS.BI_hecho_compra hc
+		ON hc.idTiempo = hf.idTiempo
+		AND hc.idSucursal = hf.idSucursal
+		AND hc.idUbicacion = hf.idUbicacion
+	GROUP BY
+		dt.anio, dt.mes, ds.numeroSucursal, ds.direccion, ubi.provincia, ubi.localidad
+GO

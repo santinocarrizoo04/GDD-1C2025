@@ -2,6 +2,15 @@ USE GD1C2025
 GO
 
 DROP VIEW LOS_BASEADOS.gananciasView
+DROP VIEW LOS_BASEADOS.facturaPromedioMensualView
+DROP VIEW LOS_BASEADOS.rendimientoModelosView
+DROP VIEW LOS_BASEADOS.volumenPedidosView
+DROP VIEW LOS_BASEADOS.conversionPedidosView
+-- DROP VIEW LOS_BASEADOS.tiempoPromedioFabricacionView
+DROP VIEW LOS_BASEADOS.promedioComprasView
+DROP VIEW LOS_BASEADOS.comprasPorTipoMaterialView
+DROP VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView
+DROP VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView
 
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_ubicaciones
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_sucursal
