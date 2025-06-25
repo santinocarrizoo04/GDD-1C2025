@@ -501,160 +501,49 @@ SELECT * FROM LOS_BASEADOS.comprasPorTipoMaterialView
 SELECT * FROM LOS_BASEADOS.porcentajeCumplimientoEnviosView
 SELECT * FROM LOS_BASEADOS.localidadesConMayorCostoEnvioView
 
-/*
--- 1) 171 rows - ok? -- SI
--- Ganancias: Total de ingresos (facturación) - total de egresos (compras), por cada mes, por cada sucursal.
-CREATE VIEW LOS_BASEADOS.gananciasView AS
-	SELECT
-		dt.anio,
-		dt.mes,
-		ds.numeroSucursal,
-		ds.direccion,
-		ubi.provincia,
-		ubi.localidad,
-		SUM(hf.total_facturas) - ISNULL(SUM(hc.total_compras), 0) AS Ganancia
-	FROM LOS_BASEADOS.BI_hecho_factura hf
-	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hf.idSucursal = ds.idSucursal
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON hf.idUbicacion = ubi.idUbicacion
-	LEFT JOIN LOS_BASEADOS.BI_hecho_compra hc
-		ON hc.idTiempo = hf.idTiempo
-		AND hc.idSucursal = hf.idSucursal
-		AND hc.idUbicacion = hf.idUbicacion
-	GROUP BY
-		dt.anio, dt.mes, ds.numeroSucursal, ds.direccion, ubi.provincia, ubi.localidad
-GO
-*/
-
--- MIGRA
-
-
-
-
-
-
-
-SELECT * FROM LOS_BASEADOS.BI_hecho_compra WHERE idSucursal = 2
-
-SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial, count (compra.numeroCompra), sum(detalle_compra.subtotal)
-    FROM LOS_BASEADOS.compra compra
-    JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=sucursal.numeroSucursal
-	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad= localidad.idLocalidad
-	JOIN LOS_BASEADOS.detalle_compra ON compra.idCompra=detalle_compra.idCompra
-	JOIN LOS_BASEADOS.material material ON material.idMaterial=detalle_compra.idMaterial
-	JOIN LOS_BASEADOS.tipo_material tipo_mat ON material.idTipoMaterial = tipo_mat.idTipoMaterial
-
-	JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
-	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON dtm.tipo = tipo_mat.tipo
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = sucursal.numeroSucursal
-    GROUP BY tiempo.idTiempo, ds.idSucursal, dtm.idBiTipoMaterial, ubi.idUbicacion
+------------------------------------------------------------------------
 
 SELECT 
-    tiempo.idTiempo,
-    ubi.idUbicacion,
-    ds.idSucursal,
-    dtm.idBiTipoMaterial,
-    COUNT(detalle_compra.subtotal) AS cantidad_compras,
-    SUM(ISNULL(detalle_compra.subtotal, 0)) AS total_compras
+	tiempo.idTiempo,
+	ubi.idUbicacion,
+	ds.idSucursal,
+	SUM(COALESCE(factura.total, 0)) AS total_facturado,
+	SUM(CASE WHEN factura.idFactura IS NOT NULL THEN 1 ELSE 0 END) AS cantidad_facturas
 FROM 
-    LOS_BASEADOS.BI_dimension_tiempo tiempo
-CROSS JOIN 
-    LOS_BASEADOS.BI_dimension_sucursal ds
-CROSS JOIN 
-    LOS_BASEADOS.BI_dimension_tipo_material dtm
--- Join para obtener ubicación de la sucursal
-JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = ds.numeroSucursal
-JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad = localidad.idLocalidad
-JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad = ubi.idLocalidad AND localidad.idProvincia = ubi.idProvincia
--- Left join con los datos de compra reales
-LEFT JOIN LOS_BASEADOS.compra compra 
-    ON compra.numeroSucursal = ds.numeroSucursal
-   AND LOS_BASEADOS.comparar_fecha(tiempo.anio, tiempo.mes, tiempo.cuatrimestre, compra.fecha) = 1
-LEFT JOIN LOS_BASEADOS.detalle_compra detalle_compra 
-    ON compra.idCompra = detalle_compra.idCompra
-LEFT JOIN LOS_BASEADOS.material material 
-    ON material.idMaterial = detalle_compra.idMaterial
-LEFT JOIN LOS_BASEADOS.tipo_material tipo_mat 
-    ON material.idTipoMaterial = tipo_mat.idTipoMaterial
-   AND tipo_mat.tipo = dtm.tipo
-GROUP BY 
-    tiempo.idTiempo,
-    ubi.idUbicacion,
-    ds.idSucursal,
-    dtm.idBiTipoMaterial
-ORDER BY tiempo.idTiempo,
-    ubi.idUbicacion,
-    ds.idSucursal,
-    dtm.idBiTipoMaterial
-
-
-SELECT 
-    dt.anio,
-    dt.cuatrimestre,
-    ds.numeroSucursal,
-    dtm.tipo,
-    SUM(hc.total_compras) AS total_gastado
-FROM 
-    LOS_BASEADOS.BI_hecho_compra hc
-JOIN LOS_BASEADOS.BI_dimension_tiempo dt 
-    ON hc.idTiempo = dt.idTiempo
-JOIN LOS_BASEADOS.BI_dimension_sucursal ds 
-    ON hc.idSucursal = ds.idSucursal
-JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm 
-    ON hc.idBiTipoMaterial = dtm.idBiTipoMaterial
-GROUP BY 
-    dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- SQL
-
-SELECT * FROM LOS_BASEADOS.compra WHERE numeroSucursal = 58 AND YEAR(fecha) = 2026 AND MONTH(fecha) = 1
-
--- VIEW
-
-SELECT 
-		dt.anio,
-		dt.cuatrimestre,
-		ds.numeroSucursal,
-		dtm.tipo,
-		SUM(hc.total_compras) AS total_gastado
-	FROM LOS_BASEADOS.BI_hecho_compra hc
-	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hc.idSucursal = ds.idSucursal
-	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON hc.idBiTipoMaterial = dtm.idBiTipoMaterial
-	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
-
-SELECT 
-	dt.anio,
-	dt.cuatrimestre,
-	ds.numeroSucursal,
-	dtm.tipo,
-	ISNULL(SUM(hc.total_compras), 0) AS total_gastado
-FROM 
-	LOS_BASEADOS.BI_dimension_tiempo dt
+	LOS_BASEADOS.BI_dimension_tiempo tiempo
 CROSS JOIN 
 	LOS_BASEADOS.BI_dimension_sucursal ds
-CROSS JOIN 
-	LOS_BASEADOS.BI_dimension_tipo_material dtm
-LEFT JOIN 
-	LOS_BASEADOS.BI_hecho_compra hc 
-	ON hc.idTiempo = dt.idTiempo 
-	AND hc.idSucursal = ds.idSucursal 
-	AND hc.idBiTipoMaterial = dtm.idBiTipoMaterial
+
+-- Recuperamos ubicación de la sucursal (JOIN "duro")
+JOIN LOS_BASEADOS.sucursal sucursal 
+	ON sucursal.numeroSucursal = ds.numeroSucursal
+JOIN LOS_BASEADOS.localidad localidad 
+	ON sucursal.idLocalidad = localidad.idLocalidad
+JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi 
+	ON sucursal.idLocalidad = ubi.idLocalidad 
+	AND localidad.idProvincia = ubi.idProvincia
+
+-- LEFT JOIN con facturas (puede no haber)
+LEFT JOIN LOS_BASEADOS.factura factura 
+	ON factura.numeroSucursal = ds.numeroSucursal 
+	AND LOS_BASEADOS.comparar_fecha(tiempo.anio, tiempo.mes, tiempo.cuatrimestre, factura.fecha) = 1
+
 GROUP BY 
-	dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
+	tiempo.idTiempo,
+	ubi.idUbicacion,
+	ds.idSucursal
 ORDER BY 
-	dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo;
+	tiempo.idTiempo,
+	ubi.idUbicacion,
+	ds.idSucursal;
+
+
+
+SELECT tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, sum(factura.total), count(*)
+	FROM LOS_BASEADOS.factura factura 
+	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal= factura.numeroSucursal
+	JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=sucursal.idLocalidad
+	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,factura.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON sucursal.numeroSucursal = ds.numeroSucursal
+	GROUP BY tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal

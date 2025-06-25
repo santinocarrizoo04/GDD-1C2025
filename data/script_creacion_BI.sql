@@ -432,7 +432,8 @@ GO
 -- CREACION DE PROCEDURES PARA MIGRAR LOS DATOS DEL MODELO RELACIONAL A LAS TABLAS DE HECHOS -------------------------------------
 
 -- MIGRA DESDE COMPRA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
--- CANTISAD Y TOTAL DE COMPRAS POR TIEMPO, UBICACION, SUCURSAL Y TIPO DE MATERIAL
+-- CANTIDAD Y TOTAL DE COMPRAS POR TIEMPO, UBICACION, SUCURSAL Y TIPO DE MATERIAL
+-- 513 Rows = 3 (Tipo Material) * 19 (Tiempo) * 9 (Sucursal)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 AS
 BEGIN
@@ -459,6 +460,7 @@ GO
 
 -- MIGRA DESDE ENVIO (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
 -- CANTIDAD (CUMPLIDOS Y TOTAL) Y MONTO TOTAL DE ENVIOS POR TIEMPO, UBICACION Y SUCURSAL
+-- 171 Rows = 19 (Tiempo) * 9 (Sucursal)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio
 AS
 BEGIN
@@ -479,6 +481,7 @@ GO
 
 -- MIGRA DESDE FACTURA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
 -- CANTIDAD Y MONTO TOTAL DE FACTURAS POR TIEMPO, UBICACION Y SUCURSAL
+-- 171 Rows = 19 (Tiempo) * 9 (Sucursal)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_factura
 AS
 BEGIN
@@ -496,21 +499,25 @@ GO
 
 -- MIGRA DESDE PEDIDO (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
 -- CANTIDAD DE PEDIDOS POR TIEMPO, UBICACION, SUCURSAL, TURNO DE VENTA Y ESTADO DEL PEDIDO
+-- 1026 Rows = 19 (Tiempo) * 9 (Sucursal) * 2 (Turno) * 3 (Estado)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
 AS
 BEGIN
     INSERT LOS_BASEADOS.BI_hecho_pedido(idTiempo,idTurnoVenta,idSucursal,idUbicacion,idBiEstadoPedido,cant_pedidos)
-    SELECT tiempo.idTiempo,turn.idTurnoVenta, ds.idSucursal, ubi.idUbicacion, est_ped.idBiEstadoPedido,COUNT(pedido.numeroPedido)
-    FROM LOS_BASEADOS.pedido
-	JOIN LOS_BASEADOS.estado est ON est.idEstado = pedido.idEstado
-	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = pedido.numeroSucursal
-	JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad=sucursal.idLocalidad
-	JOIN LOS_BASEADOS.BI_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,pedido.fecha)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON localidad.idLocalidad = ubi.idLocalidad and localidad.idProvincia=ubi.idProvincia
-	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON LOS_BASEADOS.comparar_turno(turn.turno,pedido.fecha) = 1 
-	JOIN LOS_BASEADOS.BI_dimension_estado_pedido est_ped ON est_ped.idEstado = pedido.idEstado
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON sucursal.numeroSucursal = ds.numeroSucursal
-	GROUP BY tiempo.idTiempo, ubi.idUbicacion,turn.idTurnoVenta,est_ped.idBiEstadoPedido, ds.idSucursal
+	SELECT tiempo.idTiempo, turn.idTurnoVenta, ds.idSucursal, ubi.idUbicacion, est_ped.idBiEstadoPedido, 
+			SUM(CASE WHEN pedido.numeroPedido IS NOT NULL THEN 1 ELSE 0 END)
+	FROM LOS_BASEADOS.BI_dimension_tiempo tiempo
+	JOIN LOS_BASEADOS.BI_dimension_turno_venta turn ON 1=1
+	JOIN LOS_BASEADOS.BI_dimension_estado_pedido est_ped ON 1=1
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON 1=1
+	LEFT JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = ds.numeroSucursal
+	LEFT JOIN LOS_BASEADOS.localidad localidad ON localidad.idLocalidad = sucursal.idLocalidad
+	LEFT JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON localidad.idLocalidad = ubi.idLocalidad AND localidad.idProvincia = ubi.idProvincia
+	LEFT JOIN LOS_BASEADOS.pedido pedido ON pedido.numeroSucursal = sucursal.numeroSucursal
+		AND pedido.idEstado = est_ped.idEstado AND LOS_BASEADOS.comparar_fecha(tiempo.anio, tiempo.mes, tiempo.cuatrimestre, pedido.fecha) = 1
+		AND LOS_BASEADOS.comparar_turno(turn.turno, pedido.fecha) = 1
+	GROUP BY tiempo.idTiempo, turn.idTurnoVenta, ds.idSucursal, ubi.idUbicacion, est_ped.idBiEstadoPedido
+	ORDER BY tiempo.idTiempo, turn.idTurnoVenta, ds.idSucursal, ubi.idUbicacion, est_ped.idBiEstadoPedido
 END
 GO
 
@@ -540,6 +547,7 @@ GO
 
 -- MIGRA DESDE FACTURA (JOINEA CON OTRAS TABLAS PARA LOS DATOS RESTANTES)
 -- TIEMPO Y CANTIDAD TOTAL DE FABRICACION POR TIEMPO, UBICACION Y SUCURSAL
+-- 171 Rows = 19 (Tiempo) * 9 (Sucursal)
 CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_fabricacion
 AS
 BEGIN
@@ -634,7 +642,7 @@ CREATE VIEW LOS_BASEADOS.volumenPedidosView AS
     GROUP BY dt.anio, dt.mes, ds.numeroSucursal, dtv.turno
 GO
 
--- 5) 90 Rows
+-- 5) 135 Rows = 3 (Estados) * 5 (Cuatrimestres) * 9 (Sucursal)
 -- Porcentaje de pedidos según estado, por cuatrimestre y sucursal
 CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 	SELECT 
@@ -642,9 +650,9 @@ CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 		dt.cuatrimestre,
 		ds.numeroSucursal,
 		dep.estado,
-		SUM(hp.cant_pedidos) AS pedidos_estado,
-		SUM(SUM(hp.cant_pedidos)) OVER (PARTITION BY dt.anio, dt.cuatrimestre, ds.numeroSucursal) AS total_pedidos,
-		CAST(SUM(hp.cant_pedidos) * 100.0 / NULLIF( SUM(SUM(hp.cant_pedidos)) OVER (PARTITION BY dt.anio, dt.cuatrimestre, ds.numeroSucursal), 0) AS DECIMAL(5,2)) AS porcentaje
+		SUM(hp.cant_pedidos) AS Cantidad_Pedidos_En_Estado,
+		SUM(SUM(hp.cant_pedidos)) OVER (PARTITION BY dt.anio, dt.cuatrimestre, ds.numeroSucursal) AS Cantidad_Total_Pedidos,
+		CAST(SUM(hp.cant_pedidos) * 100.0 / NULLIF( SUM(SUM(hp.cant_pedidos)) OVER (PARTITION BY dt.anio, dt.cuatrimestre, ds.numeroSucursal), 0) AS DECIMAL(5,2)) AS Porcentaje
 	FROM LOS_BASEADOS.BI_hecho_pedido hp
 	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hp.idTiempo = dt.idTiempo
 	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hp.idSucursal = ds.idSucursal
