@@ -437,19 +437,23 @@ CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 AS
 BEGIN
     INSERT LOS_BASEADOS.BI_hecho_compra(idTiempo, idUbicacion, idSucursal, idBiTipoMaterial, cant_compras, total_compras)
-	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial, count (compra.numeroCompra), sum(detalle_compra.subtotal)
-    FROM LOS_BASEADOS.compra compra
-    JOIN LOS_BASEADOS.sucursal sucursal ON compra.numeroSucursal=sucursal.numeroSucursal
-	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad= localidad.idLocalidad
-	JOIN LOS_BASEADOS.detalle_compra ON compra.idCompra=detalle_compra.idCompra
-	JOIN LOS_BASEADOS.material material ON material.idMaterial=detalle_compra.idMaterial
-	JOIN LOS_BASEADOS.tipo_material tipo_mat ON material.idTipoMaterial = tipo_mat.idTipoMaterial
+	SELECT tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial, 
+	SUM(CASE WHEN tipo_mat.tipo = dtm.tipo THEN 1 ELSE 0 END) AS cantidad_compras,
+	SUM(CASE WHEN tipo_mat.tipo = dtm.tipo THEN COALESCE(detalle_compra.subtotal, 0) ELSE 0 END) AS total_compras
+	FROM LOS_BASEADOS.BI_dimension_tiempo tiempo
+	CROSS JOIN LOS_BASEADOS.BI_dimension_sucursal ds
+	CROSS JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm
 
-	JOIN LOS_BASEADOS.bi_dimension_tiempo tiempo ON LOS_BASEADOS.comparar_fecha(tiempo.anio,tiempo.mes,tiempo.cuatrimestre,compra.fecha)=1
-	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
-	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON dtm.tipo = tipo_mat.tipo
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON ds.numeroSucursal = sucursal.numeroSucursal
-    GROUP BY tiempo.idTiempo, ds.idSucursal, dtm.idBiTipoMaterial, ubi.idUbicacion
+	JOIN LOS_BASEADOS.sucursal sucursal ON sucursal.numeroSucursal = ds.numeroSucursal
+	JOIN LOS_BASEADOS.localidad localidad ON sucursal.idLocalidad = localidad.idLocalidad
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad = ubi.idLocalidad AND localidad.idProvincia = ubi.idProvincia
+
+	LEFT JOIN LOS_BASEADOS.compra compra ON compra.numeroSucursal = ds.numeroSucursal AND LOS_BASEADOS.comparar_fecha(tiempo.anio, tiempo.mes, tiempo.cuatrimestre, compra.fecha) = 1
+	LEFT JOIN LOS_BASEADOS.detalle_compra detalle_compra ON compra.idCompra = detalle_compra.idCompra
+	LEFT JOIN LOS_BASEADOS.material material ON material.idMaterial = detalle_compra.idMaterial
+	LEFT JOIN LOS_BASEADOS.tipo_material tipo_mat ON material.idTipoMaterial = tipo_mat.idTipoMaterial
+	GROUP BY tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial
+	ORDER BY tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal, dtm.idBiTipoMaterial
 END
 GO
 
@@ -581,7 +585,7 @@ CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 		dt.anio,
 		dt.cuatrimestre,
 		du.provincia,
-		AVG(hf.total_facturas/ hf.cant_facturas) AS factura_promedio
+		SUM(hf.total_facturas)/ SUM(hf.cant_facturas) AS factura_promedio
 	FROM LOS_BASEADOS.BI_hecho_factura hf
 	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON hf.idUbicacion = du.idUbicacion
@@ -662,10 +666,7 @@ GO
 -- 7) 19 Rows
 -- Promedio de compras por mes
 CREATE VIEW LOS_BASEADOS.promedioComprasView AS
-	SELECT 
-		dt.anio,
-		dt.mes,
-		AVG(hc.total_compras / COALESCE(hc.cant_compras,1)) AS promedio_compras
+	SELECT dt.anio, dt.mes, SUM(hc.total_compras) / SUM(hc.cant_compras) AS promedio_compras
 	FROM LOS_BASEADOS.BI_hecho_compra hc
 	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
 	GROUP BY dt.anio, dt.mes
@@ -674,14 +675,11 @@ GO
 -- 8) 135 Rows
 -- Importe total de compras por Tipo de Material, sucursal y cuatrimestre
 CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
-	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo, ISNULL(SUM(hc.total_compras), 0) AS total_gastado
-	FROM LOS_BASEADOS.BI_dimension_tiempo dt
-	CROSS JOIN LOS_BASEADOS.BI_dimension_sucursal ds
-	CROSS JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm
-	LEFT JOIN LOS_BASEADOS.BI_hecho_compra hc 
-	ON hc.idTiempo = dt.idTiempo 
-	AND hc.idSucursal = ds.idSucursal 
-	AND hc.idBiTipoMaterial = dtm.idBiTipoMaterial
+	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo, SUM(hc.total_compras) AS total_gastado
+	FROM LOS_BASEADOS.BI_hecho_compra hc 
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hc.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON hc.idBiTipoMaterial = dtm.idBiTipoMaterial
 	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
 GO
 
