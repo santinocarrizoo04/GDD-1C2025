@@ -67,7 +67,7 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_factura(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
-	idSucursal DECIMAL(18,0),
+	idSucursal DECIMAL(18,0) NOT NULL,
 	total_facturas DECIMAL(12,2) NOT NULL,
     cant_facturas DECIMAL(18,0) NOT NULL
 );
@@ -77,7 +77,7 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_pedido(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idTurnoVenta DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
-	idSucursal DECIMAL(18,0),
+	idSucursal DECIMAL(18,0) NOT NULL,
     idBiEstadoPedido DECIMAL(18,0) NOT NULL,
     cant_pedidos DECIMAL(18,0) NOT NULL
 );
@@ -87,7 +87,7 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_venta(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idRangoEtario DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
-	idSucursal DECIMAL(18,0),
+	idSucursal DECIMAL(18,0) NOT NULL,
     idBiModeloSillon DECIMAL(18,0) NOT NULL,
     total_ventas DECIMAL(12,2) NOT NULL,
     cant_ventas DECIMAL(18,0) NOT NULL
@@ -97,7 +97,7 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_compra(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
-	idSucursal DECIMAL(18,0),
+	idSucursal DECIMAL(18,0) NOT NULL,
     idBiTipoMaterial DECIMAL(18,0) NOT NULL,
     total_compras DECIMAL(12,2) NOT NULL,
     cant_compras DECIMAL(18,0) NOT NULL
@@ -107,10 +107,19 @@ GO
 CREATE TABLE LOS_BASEADOS.BI_hecho_envio(
 	idTiempo DECIMAL(18,0) NOT NULL,
     idUbicacion DECIMAL(18,0) NOT NULL,
-	idSucursal DECIMAL(18,0),
+	idSucursal DECIMAL(18,0) NOT NULL,
     cant_envios_cumplidos DECIMAL(18,0) NOT NULL,
     cant_envios_total DECIMAL(18,0) NOT NULL,
     total_costo_envio DECIMAL(12,2) NOT NULL
+);
+GO
+
+CREATE TABLE LOS_BASEADOS.BI_hecho_fabricacion(
+	idTiempo DECIMAL(18,0) NOT NULL,
+    idUbicacion DECIMAL(18,0) NOT NULL,
+	idSucursal DECIMAL(18,0) NOT NULL,
+	total_tiempo DECIMAL(12,2) NOT NULL,
+    cant_pedidos DECIMAL(18,0) NOT NULL
 );
 GO
 
@@ -142,7 +151,7 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_dimension_modelo_sillon ADD CONSTRAINT PK_idBiModeloSillon PRIMARY KEY(idBiModeloSillon);
 GO
 
-ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT PK_hechoFactura PRIMARY KEY(idTiempo, idUbicacion);
+ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT PK_hechoFactura PRIMARY KEY(idTiempo, idUbicacion, idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
@@ -151,7 +160,7 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_factura ADD CONSTRAINT FK_hechoFactura_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 
-ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT PK_hechoEnvio PRIMARY KEY(idTiempo, idUbicacion);
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT PK_hechoEnvio PRIMARY KEY(idTiempo, idUbicacion, idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
@@ -160,7 +169,7 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_envio ADD CONSTRAINT FK_hechoEnvio_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 
-ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT PK_hechoPedido PRIMARY KEY(idTiempo, idUbicacion, idTurnoVenta, idBiEstadoPedido);
+ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT PK_hechoPedido PRIMARY KEY(idTiempo, idUbicacion, idTurnoVenta, idBiEstadoPedido, idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
@@ -173,7 +182,7 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_pedido ADD CONSTRAINT FK_hechoPedido_idBiEstadoPedido FOREIGN KEY(idBiEstadoPedido) REFERENCES LOS_BASEADOS.BI_dimension_estado_pedido(idBiEstadoPedido);
 GO
 
-ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT PK_hechoVenta PRIMARY KEY(idTiempo, idUbicacion, idRangoEtario, idBiModeloSillon);
+ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT PK_hechoVenta PRIMARY KEY(idTiempo, idUbicacion, idRangoEtario, idBiModeloSillon, idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
@@ -186,7 +195,7 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_venta ADD CONSTRAINT FK_hechoVenta_idBiModeloSillon FOREIGN KEY(idBiModeloSillon) REFERENCES LOS_BASEADOS.BI_dimension_modelo_sillon(idBiModeloSillon);
 GO
 
-ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT PK_hechoCompra PRIMARY KEY(idTiempo, idUbicacion, idBiTipoMaterial);
+ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT PK_hechoCompra PRIMARY KEY(idTiempo, idUbicacion, idBiTipoMaterial, idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
 GO
@@ -195,6 +204,15 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_compra ADD CONSTRAINT FK_hechoCompra_idTipoMaterial FOREIGN KEY(idBiTipoMaterial) REFERENCES LOS_BASEADOS.BI_dimension_tipo_material(idBiTipoMaterial);
+GO
+
+ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT PK_hechoFabricacion PRIMARY KEY(idTiempo, idUbicacion, idSucursal);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT FK_hechoFabricacion_idTiempo FOREIGN KEY(idTiempo) REFERENCES LOS_BASEADOS.BI_dimension_tiempo(idTiempo);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT FK_hechoFabricacion_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT FK_hechoFabricacion_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
 GO
 
 -- CREACION DE FUNCIONES --------------------------------------------------------------------
@@ -477,6 +495,24 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_fabricacion
+AS
+BEGIN
+	INSERT LOS_BASEADOS.BI_hecho_fabricacion(idTiempo,idUbicacion,idSucursal, total_tiempo,cant_pedidos)
+	SELECT dt.idTiempo,du.idUbicacion, ds.idSucursal, sum(DATEDIFF(DAY, p.fecha, f.fecha)), count(*)
+	FROM LOS_BASEADOS.factura f
+	JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+	JOIN LOS_BASEADOS.detalle_pedido dp ON dp.idDetallePedido = df.idDetallePedido
+	JOIN LOS_BASEADOS.pedido p ON dp.numeroPedido = p.numeroPedido
+	JOIN LOS_BASEADOS.sucursal s ON s.numeroSucursal = f.numeroSucursal
+	JOIN LOS_BASEADOS.localidad l ON l.idLocalidad = s.idLocalidad
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON LOS_BASEADOS.comparar_fecha(dt.anio,dt.mes,dt.cuatrimestre,f.fecha)=1
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON s.idLocalidad=du.idLocalidad AND l.idProvincia=du.idProvincia
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON s.numeroSucursal = ds.numeroSucursal
+	GROUP BY dt.idTiempo, du.idUbicacion, ds.idSucursal
+END
+GO
+
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
 -- 1) 171 Rows + ganancias bien calculadas
@@ -571,19 +607,16 @@ CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dep.estado
 GO
 
--- 6) 
+-- 6) 45 Rows
 -- Tiempo promedio de fabricación: Promedio de días entre pedido y factura por sucursal y cuatrimestre
 
-/*
 CREATE VIEW LOS_BASEADOS.tiempoPromedioFabricacionView AS
-	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, AVG(DATEDIFF(DAY))
-	FROM LOS_BASEADOS.pedido hp
-	JOIN LOS_BASEADOS.f f ON hf.idTiempo = hp.idTiempo AND hp.idSucursal = hf.idSucursal AND hp.idUbicacion = hf.idUbicacion
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hp.idSucursal = ds.idSucursal
-	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hp.idTiempo = dt.idTiempo
+	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, SUM(hf.total_tiempo)/SUM(hf.cant_pedidos) TiempoPromedio
+	FROM LOS_BASEADOS.BI_hecho_fabricacion hf
+	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hf.idSucursal = ds.idSucursal
+	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hf.idTiempo = dt.idTiempo
 	GROUP BY dt.cuatrimestre, dt.anio, ds.numeroSucursal
 GO
-*/
 
 -- 7) 19 Rows
 -- Promedio de compras por mes
@@ -656,3 +689,6 @@ EXEC LOS_BASEADOS.BI_migrar_hecho_envio
 EXEC LOS_BASEADOS.BI_migrar_hecho_factura
 EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
 EXEC LOS_BASEADOS.BI_migrar_hecho_venta
+EXEC LOS_BASEADOS.BI_migrar_hecho_fabricacion
+
+SELECT * FROM LOS_BASEADOS.localidadesConMayorCostoEnvioView
