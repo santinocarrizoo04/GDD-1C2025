@@ -671,23 +671,21 @@ CREATE VIEW LOS_BASEADOS.promedioComprasView AS
 	GROUP BY dt.anio, dt.mes
 GO
 
--- 8) 114 Rows
+-- 8) 135 Rows
 -- Importe total de compras por Tipo de Material, sucursal y cuatrimestre
 CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
-	SELECT 
-		dt.anio,
-		dt.cuatrimestre,
-		ds.numeroSucursal,
-		dtm.tipo,
-		SUM(hc.total_compras) AS total_gastado
-	FROM LOS_BASEADOS.BI_hecho_compra hc
-	JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hc.idTiempo = dt.idTiempo
-	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON hc.idSucursal = ds.idSucursal
-	JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm ON hc.idBiTipoMaterial = dtm.idBiTipoMaterial
+	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo, ISNULL(SUM(hc.total_compras), 0) AS total_gastado
+	FROM LOS_BASEADOS.BI_dimension_tiempo dt
+	CROSS JOIN LOS_BASEADOS.BI_dimension_sucursal ds
+	CROSS JOIN LOS_BASEADOS.BI_dimension_tipo_material dtm
+	LEFT JOIN LOS_BASEADOS.BI_hecho_compra hc 
+	ON hc.idTiempo = dt.idTiempo 
+	AND hc.idSucursal = ds.idSucursal 
+	AND hc.idBiTipoMaterial = dtm.idBiTipoMaterial
 	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
 GO
 
--- 9) 19 Rows - Es por mes solamente, no por sucursal
+-- 9) 19 Rows
 -- Porcentaje de cumplimiento de envíos en tiempo por mes
 CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
 	SELECT 
