@@ -627,28 +627,22 @@ CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 	GROUP BY dt.anio, dt.cuatrimestre, du.provincia
 GO
 
--- 3) 405 Rows
+-- 3) 405 Rows = 5 (Cuatrimestres) * 3 (Rango Etario) * 9 (Localidad de Sucursal) * 3 (TOP 3)
 -- Top 3 modelos más vendidos por cuatrimestre, localidad y rango etario
 CREATE VIEW LOS_BASEADOS.rendimientoModelosView AS
 	SELECT *
 	FROM (
-		SELECT 
-			dt.anio,
-			dt.cuatrimestre,
-			du.localidad,
-			dre.rango AS rango_etario,
-			dms.modelo,
-			dms.descripcion,
-			hv.cant_ventas,
+		SELECT dt.anio,dt.cuatrimestre,du.localidad,dre.rango AS rango_etario,dms.modelo,dms.descripcion,SUM(hv.cant_ventas) AS total_ventas,
 			ROW_NUMBER() OVER (
 				PARTITION BY dt.anio, dt.cuatrimestre, du.localidad, dre.rango
-				ORDER BY hv.cant_ventas DESC
+				ORDER BY SUM(hv.cant_ventas) DESC
 			) AS Ranking
 		FROM LOS_BASEADOS.BI_hecho_venta hv
 		JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hv.idTiempo = dt.idTiempo
 		JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON hv.idUbicacion = du.idUbicacion
 		JOIN LOS_BASEADOS.BI_dimension_rango_etario dre ON hv.idRangoEtario = dre.idRangoEtario
 		JOIN LOS_BASEADOS.BI_dimension_modelo_sillon dms ON hv.idBiModeloSillon = dms.idBiModeloSillon
+		GROUP BY dt.anio, dt.cuatrimestre, du.localidad, dre.rango, dms.modelo, dms.descripcion
 	) t
 	WHERE Ranking <= 3
 GO
