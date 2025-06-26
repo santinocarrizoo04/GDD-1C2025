@@ -738,3 +738,19 @@ EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
 EXEC LOS_BASEADOS.BI_migrar_hecho_venta
 EXEC LOS_BASEADOS.BI_migrar_hecho_fabricacion
 EXEC LOS_BASEADOS.BI_migrar_hecho_envio_cliente
+
+/*
+-------------------- SELECTS DE LAS VISTAS --------------------
+
+SELECT * FROM LOS_BASEADOS.gananciasView
+SELECT * FROM LOS_BASEADOS.facturaPromedioMensualView
+SELECT * FROM LOS_BASEADOS.rendimientoModelosView
+SELECT * FROM LOS_BASEADOS.volumenPedidosView
+SELECT * FROM LOS_BASEADOS.conversionPedidosView
+SELECT * FROM LOS_BASEADOS.tiempoPromedioFabricacionView
+SELECT * FROM LOS_BASEADOS.promedioComprasView
+SELECT * FROM LOS_BASEADOS.comprasPorTipoMaterialView
+SELECT * FROM LOS_BASEADOS.porcentajeCumplimientoEnviosView
+SELECT * FROM LOS_BASEADOS.localidadesConMayorCostoEnvioView
+
+*/
