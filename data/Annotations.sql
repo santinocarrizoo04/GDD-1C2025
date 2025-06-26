@@ -547,3 +547,6 @@ SELECT tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, sum(factura.total), count
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON sucursal.idLocalidad=ubi.idLocalidad AND localidad.idProvincia=ubi.idProvincia
 	JOIN LOS_BASEADOS.BI_dimension_sucursal ds ON sucursal.numeroSucursal = ds.numeroSucursal
 	GROUP BY tiempo.idTiempo, ubi.idUbicacion, ds.idSucursal
+
+
+SELECT * FROM LOS_BASEADOS.pedido WHERE numeroSucursal = 37 AND DATEPART(HOUR, fecha) BETWEEN 14 AND 20 AND MONTH(fecha) =1 AND YEAR(fecha) = 2026
