@@ -595,8 +595,8 @@ GO
 
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
--- 1) 171 Rows
--- Total ingresos - Total egresos por mes y sucursal
+-- 1) 171 Rows = 19 (meses) * 9 (Sucursal)
+-- Total  de ingresos  (facturación)  -  total  de  egresos (compras), por cada mes, por cada sucursal
 CREATE VIEW LOS_BASEADOS.gananciasView AS
 	SELECT dt.mes, dt.anio, ds.numeroSucursal, ds.direccion, du.provincia, du.localidad,
 		( SELECT hf1.total_facturas - COALESCE(SUM(hc1.total_compras),0)
@@ -613,7 +613,7 @@ CREATE VIEW LOS_BASEADOS.gananciasView AS
 	GROUP BY dt.mes, dt.anio, ds.numeroSucursal, ds.direccion, hf.idSucursal, hf.idTiempo, du.provincia, du.localidad
 GO
 
--- 2) 35 Rows
+-- 2) 35 Rows = 5 (Cuatrimestres) * 7 (Provincias)
 -- Factura promedio mensual por provincia (de la sucursal) y cuatrimestre
 CREATE VIEW LOS_BASEADOS.facturaPromedioMensualView AS
 	SELECT 
@@ -653,7 +653,7 @@ CREATE VIEW LOS_BASEADOS.rendimientoModelosView AS
 	WHERE Ranking <= 3
 GO
 
--- 4) 342 Rows
+-- 4) 342 Rows = 19 (meses) * 9 (Sucursal) * 2 (Turno)
 -- Cantidad de pedidos por turno, sucursal y mes
 CREATE VIEW LOS_BASEADOS.volumenPedidosView AS
     SELECT 
@@ -687,7 +687,7 @@ CREATE VIEW LOS_BASEADOS.conversionPedidosView AS
 	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dep.estado
 GO
 
--- 6) 45 Rows
+-- 6) 45 Rows = 5 (Cuatrimestres) * 9 (Sucursal)
 -- Promedio de días que pasan entre pedido y factura por sucursal y cuatrimestre
 
 CREATE VIEW LOS_BASEADOS.tiempoPromedioFabricacionView AS
@@ -698,7 +698,7 @@ CREATE VIEW LOS_BASEADOS.tiempoPromedioFabricacionView AS
 	GROUP BY dt.cuatrimestre, dt.anio, ds.numeroSucursal
 GO
 
--- 7) 19 Rows
+-- 7) 19 Rows = 19 (meses) 
 -- Promedio de compras por mes
 CREATE VIEW LOS_BASEADOS.promedioComprasView AS
 	SELECT dt.anio, dt.mes, SUM(hc.total_compras) / SUM(hc.cant_compras) AS promedio_compras
@@ -707,7 +707,7 @@ CREATE VIEW LOS_BASEADOS.promedioComprasView AS
 	GROUP BY dt.anio, dt.mes
 GO
 
--- 8) 135 Rows
+-- 8) 135 Rows = 3 (Tipo Material) * 5 (Cuatrimestres) * 9 (Sucursal)
 -- Importe total de compras por Tipo de Material, sucursal y cuatrimestre
 CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
 	SELECT dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo, SUM(hc.total_compras) AS total_gastado
@@ -718,7 +718,7 @@ CREATE VIEW LOS_BASEADOS.comprasPorTipoMaterialView AS
 	GROUP BY dt.anio, dt.cuatrimestre, ds.numeroSucursal, dtm.tipo
 GO
 
--- 9) 19 Rows
+-- 9) 19 Rows = 19 (meses) 
 -- Porcentaje de cumplimiento de envíos en tiempo por mes
 CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
 	SELECT 
@@ -733,7 +733,7 @@ CREATE VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView AS
 	GROUP BY dt.anio, dt.mes
 GO
 
--- 10) 3 Rows
+-- 10) 3 Rows = 3 (top 3)
 -- TOP 3 localidades con mayor costo de envío promedio
 CREATE VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView AS
 	SELECT TOP 3
