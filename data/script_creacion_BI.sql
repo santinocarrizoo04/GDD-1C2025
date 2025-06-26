@@ -123,6 +123,13 @@ CREATE TABLE LOS_BASEADOS.BI_hecho_fabricacion(
 );
 GO
 
+CREATE TABLE LOS_BASEADOS.BI_hecho_envio_cliente(
+    idUbicacion DECIMAL(18,0) NOT NULL,
+	costo_total DECIMAL(12,2) NOT NULL,
+    cant_envios DECIMAL(18,0) NOT NULL
+);
+GO
+
 -- CREACION DE CONSTRAINTS DE LAS TABLAS (PKS, FKS)--------------------------------------------------------------------
 
 -- CREACION DE UNA PRIMARY KEY PARA UNA TABLA DE DIMENSIONES
@@ -216,6 +223,11 @@ GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT FK_hechoFabricacion_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
 ALTER TABLE LOS_BASEADOS.BI_hecho_fabricacion ADD CONSTRAINT FK_hechoFabricacion_idSucursal FOREIGN KEY(idSucursal) REFERENCES LOS_BASEADOS.BI_dimension_sucursal(idSucursal);
+GO
+
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio_cliente ADD CONSTRAINT PK_hechoEnvioCliente PRIMARY KEY(idUbicacion);
+GO
+ALTER TABLE LOS_BASEADOS.BI_hecho_envio_cliente ADD CONSTRAINT FK_hechoEnvioCliente_idUbicacion FOREIGN KEY(idUbicacion) REFERENCES LOS_BASEADOS.BI_dimension_ubicacion(idUbicacion);
 GO
 
 -- CREACION DE FUNCIONES AUXILIARES PARA LA MIGRACION --------------------------------------------------------------------
@@ -566,6 +578,21 @@ BEGIN
 END
 GO
 
+CREATE PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio_cliente
+AS
+BEGIN
+	INSERT LOS_BASEADOS.BI_hecho_envio_cliente(idUbicacion, cant_envios, costo_total)
+	SELECT ubi.idUbicacion,count(*), sum(e.total)
+	FROM LOS_BASEADOS.envio e
+	JOIN LOS_BASEADOS.factura f ON f.idFactura = e.idFactura
+	JOIN LOS_BASEADOS.cliente c ON c.idCliente = f.idCliente
+	JOIN LOS_BASEADOS.localidad l ON l.idLocalidad=c.idLocalidad
+
+	JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON c.idLocalidad=ubi.idLocalidad AND l.idProvincia=ubi.idProvincia
+	GROUP BY ubi.idUbicacion
+END
+GO
+
 -- CREACION DE VISTAS --------------------------------------------------------------------
 
 -- 1) 171 Rows
@@ -711,8 +738,8 @@ GO
 CREATE VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView AS
 	SELECT TOP 3
 		du.localidad,
-		AVG(he.total_costo_envio / he.cant_envios_cumplidos) AS promedio_costo_envio
-	FROM LOS_BASEADOS.BI_hecho_envio he
+		SUM(he.costo_total) / SUM(he.cant_envios) AS promedio_costo_envio
+	FROM LOS_BASEADOS.BI_hecho_envio_cliente he
 	JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON he.idUbicacion = du.idUbicacion
 	GROUP BY du.localidad
 	ORDER BY promedio_costo_envio DESC
@@ -735,3 +762,4 @@ EXEC LOS_BASEADOS.BI_migrar_hecho_factura
 EXEC LOS_BASEADOS.BI_migrar_hecho_pedido
 EXEC LOS_BASEADOS.BI_migrar_hecho_venta
 EXEC LOS_BASEADOS.BI_migrar_hecho_fabricacion
+EXEC LOS_BASEADOS.BI_migrar_hecho_envio_cliente

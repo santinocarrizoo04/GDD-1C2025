@@ -21,6 +21,7 @@ DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_modelo_sillon
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tiempo
 
+DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio_cliente
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_fabricacion
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
@@ -36,6 +37,7 @@ DROP FUNCTION LOS_BASEADOS.comparar_fecha
 DROP FUNCTION LOS_BASEADOS.cant_envios_cumplidos
 DROP FUNCTION LOS_BASEADOS.obtener_cuatrimestre
 
+DROP TABLE LOS_BASEADOS.BI_hecho_envio_cliente
 DROP TABLE LOS_BASEADOS.BI_hecho_fabricacion
 DROP TABLE LOS_BASEADOS.BI_hecho_envio
 DROP TABLE LOS_BASEADOS.BI_hecho_compra
