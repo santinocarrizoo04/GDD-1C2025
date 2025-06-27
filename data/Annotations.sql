@@ -464,15 +464,6 @@ ORDER BY f.numeroFactura, f.fecha, f.idCliente, f.idFactura, f.numeroSucursal, f
 
 -- DEBERIA ESTAR OK, COINCIDEN LOS MONTOS EN 1 SOLO CASO, NO LO PROBE EN OTROS CASOS
 
-
-
-
-
-
-
-
-
-
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 SELECT * FROM LOS_BASEADOS.BI_dimension_ubicacion
@@ -486,7 +477,6 @@ SELECT * FROM LOS_BASEADOS.BI_dimension_estado_pedido
 
 SELECT * FROM LOS_BASEADOS.BI_hecho_compra
 SELECT * FROM LOS_BASEADOS.BI_hecho_envio
-SELECT * FROM LOS_BASEADOS.BI_hecho_factura
 SELECT * FROM LOS_BASEADOS.BI_hecho_pedido
 SELECT * FROM LOS_BASEADOS.BI_hecho_venta
 
@@ -501,7 +491,52 @@ SELECT * FROM LOS_BASEADOS.comprasPorTipoMaterialView
 SELECT * FROM LOS_BASEADOS.porcentajeCumplimientoEnviosView
 SELECT * FROM LOS_BASEADOS.localidadesConMayorCostoEnvioView
 
-------------------------------------------------------------------------
+SELECT * FROM LOS_BASEADOS.factura
+
+---------------------------------------------------------------------------------------------------------------------------------------
+----- TEST DE LAS VISTAS -----
+
+-- 1 GANANCIA =
+SELECT SUM(df.subtotal) + (SELECT SUM(e.total) FROM LOS_BASEADOS.envio e) - (SELECT SUM(dc.subtotal) 
+FROM LOS_BASEADOS.compra c
+JOIN LOS_BASEADOS.detalle_compra dc ON dc.idCompra = c.idCompra)
+FROM LOS_BASEADOS.factura f
+JOIN LOS_BASEADOS.detalle_factura df ON df.idFactura = f.idFactura
+
+-- 2 FACTURA PROMEDIO =
+SELECT * 
+FROM LOS_BASEADOS.factura f 
+JOIN LOS_BASEADOS.sucursal s ON s.numeroSucursal = f.numeroSucursal
+JOIN LOS_BASEADOS.localidad l ON s.idLocalidad = l.idLocalidad
+JOIN LOS_BASEADOS.provincia p ON l.idProvincia = p.idProvincia 
+WHERE YEAR(f.fecha) = 2026 AND MONTH(f.fecha) IN (1,2,3,4) AND p.provincia = 'Buenos Aires'
+
+-- 4 VOLUMEN DE PEDIDOS = 
+
+SELECT * FROM LOS_BASEADOS.pedido WHERE numeroSucursal = 37 AND DATEPART(HOUR, fecha) BETWEEN 14 AND 20 AND MONTH(fecha) =1 AND YEAR(fecha) = 2026
+
+-- 5 CONVERSIO DE PEDIDOS =
+
+SELECT * 
+FROM LOS_BASEADOS.pedido
+WHERE numeroSucursal = 37 AND idEstado = 1 AND YEAR(fecha) = 2026 AND MONTH(fecha) IN (1,2,3,4)
+
+
+SELECT * 
+FROM LOS_BASEADOS.pedido
+WHERE numeroSucursal = 37 AND idEstado = 2 AND YEAR(fecha) = 2026 AND MONTH(fecha) IN (1,2,3,4)
+
+-- 7 PROMEDIO DE COMPRAS = 
+
+SELECT * FROM LOS_BASEADOS.compra WHERE MONTH(fecha) = 1 AND YEAR(fecha) = 2026
+
+
+
+
+
+
+
+
 
 SELECT 
 	tiempo.idTiempo,
@@ -550,3 +585,55 @@ SELECT tiempo.idTiempo,ubi.idUbicacion, ds.idSucursal, sum(factura.total), count
 
 
 SELECT * FROM LOS_BASEADOS.pedido WHERE numeroSucursal = 37 AND DATEPART(HOUR, fecha) BETWEEN 14 AND 20 AND MONTH(fecha) =1 AND YEAR(fecha) = 2026
+
+
+SELECT ubi2.provincia,SUM(he.total_costo_envio)
+FROM LOS_BASEADOS.BI_hecho_envio he
+JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi2 ON ubi2.idUbicacion = he.idUbicacionSucursal 
+GROUP BY he.idUbicacionSucursal, ubi2.provincia
+
+
+SELECT 
+        ubi.provincia,
+        SUM(he.total_costo_envio) AS total_envio
+    FROM LOS_BASEADOS.BI_hecho_envio he
+    JOIN LOS_BASEADOS.BI_dimension_ubicacion ubi ON ubi.idUbicacion = he.idUbicacionSucursal
+    GROUP BY ubi.provincia
+
+
+SELECT * FROM LOS_BASEADOS.envio e 
+JOIN LOS_BASEADOS.factura f ON f.idFactura = e.idFactura
+JOIN LOS_BASEADOS.sucursal s ON s.numeroSucursal = f.numeroSucursal
+JOIN LOS_BASEADOS.localidad l ON l.idLocalidad = s.idLocalidad
+JOIN LOS_BASEADOS.provincia p ON p.idProvincia = l.idProvincia
+
+SELECT 
+    dt.anio,
+    dt.cuatrimestre,
+    du.provincia,
+    SUM(hv.total_ventas) / NULLIF(SUM(hv.cant_ventas), 0) AS factura_promedio
+FROM LOS_BASEADOS.BI_hecho_venta hv
+JOIN LOS_BASEADOS.BI_dimension_tiempo dt ON hv.idTiempo = dt.idTiempo
+JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON hv.idUbicacion = du.idUbicacion
+GROUP BY dt.anio, dt.cuatrimestre, du.provincia
+
+SELECT * 
+
+
+
+SELECT * 
+FROM LOS_BASEADOS.BI_hecho_envio he
+JOIN LOS_BASEADOS.BI_dimension_ubicacion du ON du.idUbicacion = he.idUbicacionCliente
+WHERE du.localidad = 'Santa Rosa' AND du.provincia = 'Corrientes'
+
+SELECT * FROM LOS_BASEADOS.BI_dimension_ubicacion WHERE localidad = 'Santa Rosa'
+
+DELETE FROM LOS_BASEADOS.BI_hecho_venta_por_ubi_y_cuatri
+
+SELECT SUM(cantidad) FROM LOS_BASEADOS.detalle_factura
+
+SELECT SUM(total) FROM LOS_BASEADOS.compra
+
+SELECT SUM(subtotal) FROM LOS_BASEADOS.detalle_factura
+
+SELECT * FROM LOS_BASEADOS.factura

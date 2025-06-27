@@ -1,6 +1,7 @@
 USE GD1C2025
 GO
 
+/*
 DROP VIEW LOS_BASEADOS.gananciasView
 DROP VIEW LOS_BASEADOS.facturaPromedioMensualView
 DROP VIEW LOS_BASEADOS.rendimientoModelosView
@@ -11,6 +12,7 @@ DROP VIEW LOS_BASEADOS.promedioComprasView
 DROP VIEW LOS_BASEADOS.comprasPorTipoMaterialView
 DROP VIEW LOS_BASEADOS.porcentajeCumplimientoEnviosView
 DROP VIEW LOS_BASEADOS.localidadesConMayorCostoEnvioView
+*/
 
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_ubicaciones
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_sucursal
@@ -21,11 +23,9 @@ DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_turno_venta
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_modelo_sillon
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_dimension_tiempo
 
-DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio_cliente
-DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_fabricacion
+DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta_por_ubi_y_cuatri
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_venta
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_pedido
-DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_factura
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_envio
 DROP PROCEDURE LOS_BASEADOS.BI_migrar_hecho_compra
 
@@ -36,8 +36,7 @@ DROP FUNCTION LOS_BASEADOS.obtener_turno_venta
 DROP FUNCTION LOS_BASEADOS.comparar_fecha
 DROP FUNCTION LOS_BASEADOS.obtener_cuatrimestre
 
-DROP TABLE LOS_BASEADOS.BI_hecho_envio_cliente
-DROP TABLE LOS_BASEADOS.BI_hecho_fabricacion
+DROP TABLE LOS_BASEADOS.BI_hecho_venta_por_ubi_y_cuatri
 DROP TABLE LOS_BASEADOS.BI_hecho_envio
 DROP TABLE LOS_BASEADOS.BI_hecho_compra
 DROP TABLE LOS_BASEADOS.BI_hecho_venta
